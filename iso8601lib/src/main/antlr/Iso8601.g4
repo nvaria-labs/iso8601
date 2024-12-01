@@ -524,6 +524,7 @@ durationExtended
 
 recurringCount
     : R
+    | R '-1'
     | R int_?
     ;
 
