@@ -523,7 +523,8 @@ durationExtended
     ;
 
 recurringCount
-    : R int_?
+    : R
+    | R int_?
     ;
 
 // ENTRYRULE R12/1900-01-01T00:00:00/P4294967296S 4.5.3
