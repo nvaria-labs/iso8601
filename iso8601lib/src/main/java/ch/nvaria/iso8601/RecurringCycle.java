@@ -3,6 +3,7 @@ package ch.nvaria.iso8601;
 
 import ch.nvaria.generated.Iso8601Parser;
 import ch.nvaria.iso8601.base.factories.ParseTreeFactory;
+import ch.nvaria.iso8601.base.models.PeriodDurationRecord;
 import ch.nvaria.iso8601.base.visitors.RecurringVisitor;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -48,6 +49,28 @@ public final class RecurringCycle {
         String res = startDate(iso8601);
         return ZonedDateTime.parse(res).withZoneSameInstant(zoneId);
     }
+
+
+
+    /**
+     * Retrieves the period and duration R12/2008-03-01T13:00:00Z/P1Y2M10DT2H30M -> P1Y2M10DT2H30M
+     * <p>
+     *
+     * @param iso8601 iso8601 string
+     * @return the period and duration
+     * @throws NumberFormatException if iso8601 string does not contain Rn part
+     * @since 1.0
+     */
+    public static PeriodDurationRecord periodDuration(String iso8601) throws NumberFormatException {
+        Iso8601Parser parser = ParseTreeFactory.createParser(iso8601);
+        ParseTree parseTree = parser.recurring();
+        String result = new RecurringVisitor().visit(parseTree);
+
+        return PeriodOfTime.duration(result);
+    }
+
+
+
 
     private static String startDate(String iso8601) {
         Iso8601Parser parser = ParseTreeFactory.createParser(iso8601);
