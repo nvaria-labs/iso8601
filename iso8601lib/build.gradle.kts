@@ -35,6 +35,9 @@ dependencies {
 
     mockitoAgent(libs.mockito.core) { isTransitive = false }
 
+    testImplementation(libs.hamcrest)
+    testImplementation(libs.hamcrest.date)
+
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
@@ -54,3 +57,22 @@ tasks.generateGrammarSource {
     arguments = arguments + listOf("-visitor", "-long-messages", "-package" ,"ch.nvaria.generated")
 }
 
+tasks.named("test").configure { dependsOn("jar") }
+
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
+}
+
+tasks.jacocoTestReport {
+    reports {
+        xml.required.set(false)
+        csv.required.set(false)
+        html.outputLocation.set(layout.buildDirectory.dir("jacocoHtml"))
+    }
+    dependsOn(tasks.test) // tests are required to run before generating the report
+    classDirectories.setFrom(
+        sourceSets.main.get().output.asFileTree.matching {
+            exclude("ch/nvaria/generated/*")
+        }
+    )
+}

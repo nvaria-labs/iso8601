@@ -4,7 +4,8 @@ junit5 = "5.11.3"
 mockito ="5.14.2"
 instancio ="5.1.0"
 antlr = "4.13.2"
-
+hamcrest ="3.0"
+hamcrestdate="2.0.8"
 
 
 [libraries]
@@ -22,3 +23,6 @@ instancio-junit = { module = "org.instancio:instancio-junit", version.ref = "ins
 
 antlr-v4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr" }
 antlr-v4 = { module = "org.antlr:antlr4", version.ref = "antlr" }
+
+hamcrest = { module = "org.hamcrest:hamcrest", version.ref = "hamcrest" }
+hamcrest-date = { module = "org.exparity:hamcrest-date", version.ref = "hamcrestdate" }
