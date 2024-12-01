@@ -13,13 +13,15 @@ public final class RecurringCycle {
 
     //-----------------------------------------------------------------------
     /**
-     * Retrieves the number of repetitions of a iso8601 string.
+     * Retrieves the number of repetitions Rn of a iso8601 string.
      * Example: R5/<someDate> wil result in 5
      *
+     * @param iso8601 iso8601 string
      * @return the number of repetitions
+     * @throws NumberFormatException if iso8601 string does not contain Rn part
      * @since 1.0
      */
-    public static Integer repetitions(String iso8601) {
+    public static Integer repetitions(String iso8601) throws NumberFormatException {
         Iso8601Parser parser = ParseTreeFactory.createParser(iso8601);
         ParseTree parseTree = parser.recurringCount();
         return new RecurringVisitor().visit(parseTree);
