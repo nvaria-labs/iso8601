@@ -34,14 +34,9 @@ public class RecurringVisitor extends Iso8601BaseVisitor<String> {
     }
 
 
-    @Override
-    public String visitRecurringExtended(Iso8601Parser.RecurringExtendedContext ctx) {
-        visitChildren(ctx);
-        if (ctx.getChildCount() < 3) {
-            return null;
-        } else {
-            return ctx.getChild(2).getChild(0).getChild(0).getText();
-        }
-    }
+
+
+
+
 
 }

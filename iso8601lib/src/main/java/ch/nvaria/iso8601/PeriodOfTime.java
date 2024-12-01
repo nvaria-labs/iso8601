@@ -51,7 +51,7 @@ public final class PeriodOfTime {
      */
     public static long durationInMillisFrom(String iso8601, ZonedDateTime start){
         PeriodDurationRecord pdr = duration(iso8601);
-        ZonedDateTime end = start.plus(pdr.duration()).plus(pdr.duration());
+        ZonedDateTime end = calculateEndTime(start, pdr.period(), pdr.duration());
         return start.until(end, ChronoUnit.MILLIS);
     }
 
@@ -64,8 +64,32 @@ public final class PeriodOfTime {
      */
     public static long durationInMillisFrom(String iso8601, LocalDateTime start){
         PeriodDurationRecord pdr = duration(iso8601);
-        LocalDateTime end = start.plus(pdr.duration()).plus(pdr.duration());
+        LocalDateTime end = calculateEndTime(start, pdr.period(), pdr.duration());
         return start.until(end, ChronoUnit.MILLIS);
+    }
+
+    private static LocalDateTime calculateEndTime(LocalDateTime start, Period period, Duration duration){
+
+        if(period != null){
+            start = start.plus(period);
+        }
+
+        if(duration != null){
+            start = start.plus(duration);
+        }
+        return start;
+    }
+
+    private static ZonedDateTime calculateEndTime(ZonedDateTime start, Period period, Duration duration){
+
+        if(period != null){
+            start = start.plus(period);
+        }
+
+        if(duration != null){
+            start = start.plus(duration);
+        }
+        return start;
     }
 
 }

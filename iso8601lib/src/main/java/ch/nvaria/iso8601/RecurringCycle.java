@@ -9,7 +9,9 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public final class RecurringCycle {
 
@@ -18,6 +20,49 @@ public final class RecurringCycle {
     }
 
     //-----------------------------------------------------------------------
+
+
+    /**
+     * Get the calculated trigger times of a repetition cycle
+     * Example: R5/<someDate> wil result in 5 entries in the list of trigger times
+     * If no start date is given, ZDT.now() is used
+     * <p>
+     *
+     * @param iso8601 iso8601 string
+     * @param zoneId ZoneId
+     * @return List of dates
+     * @throws NumberFormatException if iso8601 string does not contain Rn part
+     * @since 1.0
+     */
+    public static List<ZonedDateTime> triggerTimes(String iso8601, ZoneId zoneId) throws NumberFormatException {
+
+        int reps = RecurringCycle.repetitions(iso8601);
+        Optional<ZonedDateTime> startDate = RecurringCycle.startDate(iso8601, zoneId);
+        ZonedDateTime zdt = ZonedDateTime.now();
+        PeriodDurationRecord pdr = RecurringCycle.periodDuration(iso8601);
+
+        // R3/date/
+        if (startDate.isPresent()) {
+            zdt = startDate.get();
+        }
+
+        ArrayList<ZonedDateTime> triggers = new ArrayList<>();
+        for (int i = 0; i < reps; i++) {
+
+
+            if (pdr.period() != null) {
+                zdt = zdt.plus(pdr.period());
+            }
+
+            if (pdr.duration() != null) {
+               zdt =  zdt.plus(pdr.duration());
+            }
+             triggers.add(zdt);
+        }
+
+        return triggers;
+    }
+
 
     /**
      * Retrieves the number of repetitions Rn of an iso8601 string.
@@ -40,16 +85,17 @@ public final class RecurringCycle {
      * Example: R5/<someDate> wil result in someDate
      *
      * @param iso8601 iso8601 string
-     * @param zoneId ZoneId, e.g. ZoneId.of("Z") or ZoneId.of("Europe/Berlin")
+     * @param zoneId  ZoneId, e.g. ZoneId.of("Z") or ZoneId.of("Europe/Berlin")
      * @return date as a ZonedDateTime
-     * @throws DateTimeParseException if iso8601 string does not contain start date part
      * @since 1.0
      */
-    public static ZonedDateTime startDate(String iso8601, ZoneId zoneId) throws DateTimeParseException {
-        String res = startDate(iso8601);
-        return ZonedDateTime.parse(res).withZoneSameInstant(zoneId);
+    public static Optional<ZonedDateTime> startDate(String iso8601, ZoneId zoneId) {
+        Optional<String> res = startDate(iso8601);
+        if(res.isPresent()){
+          return  res.map(s -> ZonedDateTime.parse(s).withZoneSameInstant(zoneId));
+        }
+        return Optional.of(ZonedDateTime.now(zoneId));
     }
-
 
 
     /**
@@ -70,12 +116,18 @@ public final class RecurringCycle {
     }
 
 
-
-
-    private static String startDate(String iso8601) {
+    private static Optional<String> startDate(String iso8601) {
         Iso8601Parser parser = ParseTreeFactory.createParser(iso8601);
         ParseTree parseTree = parser.recurringExtended();
-        return new RecurringVisitor().visit(parseTree);
+
+        if(parseTree.getChild(2) != null && parseTree.getChild(2).getChildCount() >= 3){
+            return Optional.ofNullable(parseTree.getChild(2).getChild(0).getChild(0).getText());
+        }
+
+        if(parseTree.getChild(2) != null && parseTree.getChild(2).getChild(0).getChildCount() >= 3){
+            return Optional.ofNullable(parseTree.getChild(2).getChild(0).getChild(0).getText());
+        }
+        return Optional.empty();
 
     }
 

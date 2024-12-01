@@ -8,7 +8,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
@@ -31,6 +32,14 @@ class RecurringCycleTest {
     void getCycleRepetitions_12(String iso8601){
         Integer reps = RecurringCycle.repetitions(iso8601);
         assertThat(reps, is(12));
+    }
+
+
+    @ParameterizedTest
+    @ValueSource(strings = {"R12/PT30S", "R12/2008-03-01T13:00:00Z/P1Y2M10DT2H30M", "R12/PT30S", "R12/2008-03-01T13:00:00Z/P1Y2M10DT2H30M"})
+    void getTriggerDates_12(String iso8601){
+        List<ZonedDateTime> reps = RecurringCycle.triggerTimes(iso8601, ZoneId.of("Z"));
+        assertThat(reps.size(), is(12));
     }
 
 
@@ -64,10 +73,10 @@ class RecurringCycleTest {
     @ParameterizedTest
     @ValueSource(strings = {"R1/2008-03-01T13:00:00Z/P1Y2M10DT2H30M",  "R0/2008-03-01T13:00:00Z/P1Y2M10DT2H30M"})
     void getCycleStartDate_0(String iso8601){
-        ZonedDateTime startDate = RecurringCycle.startDate(iso8601,  ZoneId.of("Z"));
+        Optional<ZonedDateTime> startDate = RecurringCycle.startDate(iso8601,  ZoneId.of("Z"));
         System.out.println(startDate);
         assertThat(startDate, is(notNullValue()));
-        assertThat(startDate.getYear(), is(2008));
+        assertThat(startDate.get().getYear(), is(2008));
     }
 
 
@@ -75,26 +84,19 @@ class RecurringCycleTest {
     @ParameterizedTest
     @ValueSource(strings = {"R1/2008-03-01T13:00:00Z/P1Y2M10DT2H30M",  "R0/2008-03-01T13:00:00Z/P1Y2M10DT2H30M"})
     void getCycleStartDate_ZoneIdBerlin(String iso8601){
-        ZonedDateTime startDate = RecurringCycle.startDate(iso8601,  ZoneId.of("Europe/Berlin"));
-        System.out.println(startDate);
+        Optional<ZonedDateTime> startDate = RecurringCycle.startDate(iso8601,  ZoneId.of("Europe/Berlin"));
+        System.out.println(startDate.get());
         assertThat(startDate, is(notNullValue()));
-        assertThat(startDate.getYear(), is(2008));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"R1/P1Y2M10DT2H30M"})
-    void getCycleStartDate_Null(String iso8601){
-
-        assertThrows(DateTimeParseException.class,
-                ()-> RecurringCycle.startDate(iso8601,  ZoneId.of("Z")));
+        assertThat(startDate.get().getYear(), is(2008));
     }
 
 
+
     @ParameterizedTest
-    @ValueSource(strings = {"R1/2008-03-01T13:00:00Z/P1Y2M10DT2H30M",  "R1/2008-03-01T13:00:00Z/PT30S"})
+    @ValueSource(strings = {"R1/PT30S","R1/2008-03-01T13:00:00Z/P1Y2M10DT2H30M",  "R1/2008-03-01T13:00:00Z/PT30S"})
     void getCycle_getAll(String iso8601){
         Integer reps = RecurringCycle.repetitions(iso8601);
-        ZonedDateTime startDate = RecurringCycle.startDate(iso8601,  ZoneId.of("Europe/Berlin"));
+        Optional<ZonedDateTime> startDate = RecurringCycle.startDate(iso8601,  ZoneId.of("Europe/Berlin"));
         PeriodDurationRecord pdr = RecurringCycle.periodDuration(iso8601);
         System.out.println(reps);
         System.out.println(startDate);
@@ -102,8 +104,7 @@ class RecurringCycleTest {
 
         assertThat(reps, is(1));
 
-        assertThat(startDate, is(notNullValue()));
-        assertThat(startDate.getYear(), is(2008));
+
 
         assertThat(pdr.duration(), is(notNullValue()));
 
