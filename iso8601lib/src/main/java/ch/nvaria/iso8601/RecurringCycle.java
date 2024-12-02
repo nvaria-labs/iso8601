@@ -136,11 +136,15 @@ public final class RecurringCycle {
      * @since 1.0
      */
     public static Optional<ZonedDateTime> startDate(String iso8601, ZoneId zoneId) {
-        Optional<String> res = startDate(iso8601);
-        if(res.isPresent()){
-          return  res.map(s -> ZonedDateTime.parse(s).withZoneSameInstant(zoneId));
+        Iso8601Parser parser = ParseTreeFactory.createParser(iso8601);
+        ParseTree parseTree = parser.recurringExtended();
+        ParseTree selectedTree = parseTree.getChild(2).getChild(0).getChild(0);
+        if(selectedTree instanceof Iso8601Parser.IntervalTContext){
+            return  Optional.of(ZonedDateTime.now(zoneId));
         }
-        return Optional.of(ZonedDateTime.now(zoneId));
+
+        String res = parseTree.getChild(2).getChild(0).getChild(0).getText();
+        return Optional.ofNullable(Iso8601Date.date(res, zoneId));
     }
 
 
@@ -162,19 +166,5 @@ public final class RecurringCycle {
     }
 
 
-    private static Optional<String> startDate(String iso8601) {
-        Iso8601Parser parser = ParseTreeFactory.createParser(iso8601);
-        ParseTree parseTree = parser.recurringExtended();
-
-        if(parseTree.getChild(2) != null && parseTree.getChild(2).getChildCount() >= 3){
-            return Optional.ofNullable(parseTree.getChild(2).getChild(0).getChild(0).getText());
-        }
-
-        if(parseTree.getChild(2) != null && parseTree.getChild(2).getChild(0).getChildCount() >= 3){
-            return Optional.ofNullable(parseTree.getChild(2).getChild(0).getChild(0).getText());
-        }
-        return Optional.empty();
-
-    }
 
 }

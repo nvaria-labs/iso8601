@@ -57,8 +57,9 @@ class RecurringCycleTest {
     @ParameterizedTest
     @ValueSource(strings = { "R12/PT30S" })
     void getTriggerDatesInclusive_12(String iso8601){
-        ZonedDateTime now = ZonedDateTime.now();
-        List<ZonedDateTime> reps = RecurringCycle.triggerTimesInclusive(iso8601, ZoneId.of("Z"));
+        ZoneId zoneId = ZoneId.of("Europe/Berlin");
+        ZonedDateTime now = ZonedDateTime.now(zoneId);
+        List<ZonedDateTime> reps = RecurringCycle.triggerTimesInclusive(iso8601, zoneId);
         assertThat(reps.getFirst(), is( ZonedDateTimeMatchers.within(1, ChronoUnit.SECONDS, now)));
         assertThat(reps.size(), is(12));
     }
