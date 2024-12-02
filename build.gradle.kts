@@ -22,6 +22,59 @@ repositories {
     mavenCentral()
 }
 
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = "ch.nvaria.impulse-platform"
+            artifactId = "iso8601lib"
+            version = "1.0-SNAPSHOT"
+
+            from(components["java"])
+            pom {
+                name.set("iso8601lib")
+                description.set("A Library to read iso8601 strings")
+                url.set("")
+
+                licenses {
+                    license {
+                        name.set("Apache License, Version 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("tm")
+                        name.set("Thomas Müllerleile")
+                        email.set("thomas.muellerleile@nvaria.ch")
+                    }
+                }
+            }
+        }
+        repositories {
+            maven {
+                name = "maven-snapshots"
+                url = uri(System.getenv("NEXUS_MVN_SNAPSHOTS"))
+                credentials {
+                    username = System.getenv("NEXUS_USER")
+                    password = System.getenv("NEXUS_PW")
+                }
+            }
+        }
+        repositories {
+            maven {
+                name = "maven-release"
+                url = uri(System.getenv("NEXUS_MVN_RELEASE"))
+                credentials {
+                    username = System.getenv("NEXUS_USER")
+                    password = System.getenv("NEXUS_PW")
+                }
+            }
+        }
+    }
+}
+
+
 val mockitoAgent = configurations.create("mockitoAgent")
 
 sourceSets.configureEach {
