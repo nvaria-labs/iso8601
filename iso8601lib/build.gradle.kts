@@ -34,7 +34,6 @@ dependencies {
     implementation(libs.antlr.v4.runtime)
 
     mockitoAgent(libs.mockito.core) { isTransitive = false }
-
     testImplementation(libs.hamcrest)
     testImplementation(libs.hamcrest.date)
 

@@ -38,7 +38,11 @@ public final class PeriodOfTime {
             period = Period.parse(parts[0]);
         }
 
-        Duration duration = Duration.parse("PT" + parts[1]);
+        Duration duration = null;
+        if (parts.length != 1){
+            duration = Duration.parse("PT" + parts[1]);
+        }
+
         return new PeriodDurationRecord(period, duration);
     }
 

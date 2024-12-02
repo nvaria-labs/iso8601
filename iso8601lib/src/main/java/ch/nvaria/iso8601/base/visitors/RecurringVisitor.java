@@ -25,7 +25,7 @@ public class RecurringVisitor extends Iso8601BaseVisitor<String> {
     public String visitRecurringCount(Iso8601Parser.RecurringCountContext ctx) {
         visitChildren(ctx);
         if (ctx.getChildCount() == 1) {
-            return "0";
+            return String.valueOf(Integer.MAX_VALUE);
         }
         if (ctx.getChild(1).getText().equals("-1")) {
             return String.valueOf(Integer.MAX_VALUE);

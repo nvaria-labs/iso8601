@@ -23,9 +23,11 @@ public final class RecurringCycle {
 
 
     /**
-     * Get the calculated trigger times of a repetition cycle
+     * Get the calculated trigger times of a repetition cycle (inclusive)
+     * The first trigger is the startDateTime
+     * <p>
      * Example: R5/<someDate> wil result in 5 entries in the list of trigger times
-     * If no start date is given, ZDT.now() is used
+     * If no start date is given, ZonedDateTime.now(zoneId) is used
      * <p>
      *
      * @param iso8601 iso8601 string
@@ -34,11 +36,55 @@ public final class RecurringCycle {
      * @throws NumberFormatException if iso8601 string does not contain Rn part
      * @since 1.0
      */
-    public static List<ZonedDateTime> triggerTimes(String iso8601, ZoneId zoneId) throws NumberFormatException {
+    public static List<ZonedDateTime> triggerTimesInclusive(String iso8601, ZoneId zoneId) throws NumberFormatException {
 
         int reps = RecurringCycle.repetitions(iso8601);
         Optional<ZonedDateTime> startDate = RecurringCycle.startDate(iso8601, zoneId);
-        ZonedDateTime zdt = ZonedDateTime.now();
+        ZonedDateTime zdt = ZonedDateTime.now(zoneId);
+        PeriodDurationRecord pdr = RecurringCycle.periodDuration(iso8601);
+
+        // R3/date/
+        if (startDate.isPresent()) {
+            zdt = startDate.get();
+        }
+
+        ArrayList<ZonedDateTime> triggers = new ArrayList<>();
+        triggers.add(zdt);
+        for (int i = 1; i < reps; i++) {
+
+
+            if (pdr.period() != null) {
+                zdt = zdt.plus(pdr.period());
+            }
+
+            if (pdr.duration() != null) {
+                zdt =  zdt.plus(pdr.duration());
+            }
+            triggers.add(zdt);
+        }
+
+        return triggers;
+    }
+
+    /**
+     * Get the calculated trigger times of a repetition cycle (exclusive)
+     * The first trigger is startDateTime + durationOfTrigger
+     * <p>
+     * Example: R5/<someDate> wil result in 5 entries in the list of trigger times
+     * If no start date is given, ZonedDateTime.now(zoneId) is used
+     * <p>
+     *
+     * @param iso8601 iso8601 string
+     * @param zoneId ZoneId
+     * @return List of dates
+     * @throws NumberFormatException if iso8601 string does not contain Rn part
+     * @since 1.0
+     */
+    public static List<ZonedDateTime> triggerTimesExclusive(String iso8601, ZoneId zoneId) throws NumberFormatException {
+
+        int reps = RecurringCycle.repetitions(iso8601);
+        Optional<ZonedDateTime> startDate = RecurringCycle.startDate(iso8601, zoneId);
+        ZonedDateTime zdt = ZonedDateTime.now(zoneId);
         PeriodDurationRecord pdr = RecurringCycle.periodDuration(iso8601);
 
         // R3/date/
