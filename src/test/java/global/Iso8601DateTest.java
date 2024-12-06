@@ -15,7 +15,7 @@ class Iso8601DateTest {
 
 
     @ParameterizedTest
-    @ValueSource(strings = {"2007-04-05T14:30", "2007-04-05"})
+    @ValueSource(strings = {"2007-04-05T14:30Z[Europe/Berlin]", "2007-04-05","2024-12-06T19:54:16Z","2007-04-05T14:30Z", "2007-04-05"})
     void getDate(String iso8601){
 
         ZonedDateTime dateTime = Iso8601Date.date(iso8601, ZoneId.of("Europe/Berlin"));
@@ -23,6 +23,7 @@ class Iso8601DateTest {
         assertThat(dateTime.getHour(), is(notNullValue()));
 
     }
+
 
 
     @ParameterizedTest

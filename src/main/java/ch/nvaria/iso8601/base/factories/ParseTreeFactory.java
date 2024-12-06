@@ -14,8 +14,8 @@ public class ParseTreeFactory {
     }
 
     public static Iso8601Parser createParser(String iso8601){
-        CodePointCharStream isostram =  CharStreams.fromString(iso8601);
-        Lexer lexer = new Iso8601Lexer(isostram);
+        CodePointCharStream isoStream =  CharStreams.fromString(iso8601);
+        Lexer lexer = new Iso8601Lexer(isoStream);
         TokenStream tokenStream = new CommonTokenStream(lexer);
         return new Iso8601Parser(tokenStream);
     }
