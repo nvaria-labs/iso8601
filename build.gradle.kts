@@ -1,3 +1,5 @@
+import io.github.simonhauck.release.version.api.Version
+
 plugins {
     `java-library`
     idea
@@ -9,12 +11,19 @@ plugins {
     antlr
 }
 
-group = "ch.tm.impulse-platform"
+group = "ch.nvaria.impulse-platform"
 
+val versionFile = layout.settingsDirectory.file("version.properties").asFile
+version =  Version.fromPropertiesFile(versionFile)
 
 repositories {
     mavenCentral()
 }
+
+release {
+    checkForPreReleaseVersions.set(false)
+}
+
 
 
 java {
