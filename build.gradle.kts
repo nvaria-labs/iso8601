@@ -1,15 +1,20 @@
 plugins {
     `java-library`
     idea
-    id("com.github.ben-manes.versions") version "0.51.0"
+    id("com.github.ben-manes.versions") version "0.52.0"
     id("org.barfuin.gradle.jacocolog") version "3.1.0"
+    id("io.github.simonhauck.release") version "1.4.0"
     `maven-publish`
     jacoco
     antlr
 }
 
 group = "ch.tm.impulse-platform"
-version = "1.0"
+
+
+repositories {
+    mavenCentral()
+}
 
 
 java {
@@ -28,7 +33,6 @@ publishing {
         create<MavenPublication>("maven") {
             groupId = "ch.nvaria.impulse-platform"
             artifactId = "iso8601lib"
-            version = "1.0-SNAPSHOT"
 
             from(components["java"])
             pom {
@@ -93,6 +97,7 @@ dependencies {
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 tasks.named<Test>("test") {

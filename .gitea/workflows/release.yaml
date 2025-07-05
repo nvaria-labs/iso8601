@@ -1,13 +1,14 @@
 name: Build gradle jar
+
 on:
   push:
-    branches:
-      - main
+    tags:
+      - v*
+      - release
 
 jobs:
   build:
-
-    name: Build image
+    name: Build jar
     runs-on: ubuntu-latest
     container:
       image: registry.nvaria.cloud/catthehacker/ubuntu:act-latest
@@ -16,12 +17,14 @@ jobs:
         password: ${{ vars.DOCKERPW }}
     env:
       RUNNER_TOOL_CACHE: /toolcache
-      NEXUS_MVN_RELEASE : ${{ vars.NEXUS_MVN_RELEASE  }}
+      NEXUS_MVN_RELEASE: ${{ vars.NEXUS_MVN_RELEASE  }}
       NEXUS_MVN_SNAPSHOTS: ${{ vars.NEXUS_MVN_SNAPSHOTS }}
       NEXUS_USER: ${{ vars.DOCKERUSER }}
       NEXUS_PW: ${{ vars.DOCKERPW }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ vars.PAT}}
       - uses: gradle/actions/wrapper-validation@v4
       - uses: actions/cache@v4
         with:
@@ -41,7 +44,7 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build --no-daemon
       - name: Publish to nexus
-        run: ./gradlew publishMavenPublicationToMaven-snapshotsRepository --no-daemon
+        run: ./gradlew publishMavenPublicationToMaven-releaseRepository --no-daemon
 
 
 
