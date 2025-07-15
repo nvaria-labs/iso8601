@@ -6,6 +6,7 @@ plugins {
     id("com.github.ben-manes.versions") version "0.52.0"
     id("org.barfuin.gradle.jacocolog") version "3.1.0"
     id("io.github.simonhauck.release") version "1.4.0"
+    id("com.palantir.git-version") version "4.0.0"
     `maven-publish`
     jacoco
     antlr
@@ -13,27 +14,57 @@ plugins {
 
 group = "ch.nvaria.impulse-platform"
 
+val versionDetails: groovy.lang.Closure<com.palantir.gradle.gitversion.VersionDetails> by extra
+val details = versionDetails()
 val versionFile = layout.settingsDirectory.file("version.properties").asFile
-version =  Version.fromPropertiesFile(versionFile)
+version = Version.fromPropertiesFile(versionFile)
 
-repositories {
-    mavenCentral()
+if(details.branchName != null && details.branchName.contains("/")){
+    val branchname = details.branchName.replace("/", "-")
+    val ref = "-"+branchname+"-"
+    val myVersion = Version.fromPropertiesFile(versionFile).split("-")
+    version =  myVersion[0] + ref + myVersion[1]
 }
+
 
 release {
     checkForPreReleaseVersions.set(false)
 }
 
-
-
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
     withSourcesJar()
+    withJavadocJar()
 }
 
 repositories {
-    mavenCentral()
+    //mavenLocal()
+    //mavenCentral()
+
+    maven {
+        name = "maven-public"
+        url = uri("https://nexus.nvaria.cloud/repository/maven-public/")
+        credentials {
+            username = System.getenv("NEXUS_USER")
+            password = System.getenv("NEXUS_PW")
+        }
+    }
+    maven {
+        name = "maven-release"
+        url = uri(System.getenv("NEXUS_MVN_RELEASE"))
+        credentials {
+            username = System.getenv("NEXUS_USER")
+            password = System.getenv("NEXUS_PW")
+        }
+    }
+    maven {
+        url = uri(System.getenv("NEXUS_MVN_SNAPSHOTS"))
+        credentials {
+            username = System.getenv("NEXUS_USER")
+            password = System.getenv("NEXUS_PW")
+        }
+    }
 }
 
 
