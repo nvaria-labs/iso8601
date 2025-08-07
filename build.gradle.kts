@@ -173,3 +173,7 @@ tasks.jacocoTestReport {
         }
     )
 }
+tasks.withType<JavaCompile>().configureEach {
+    options.compilerArgs.add("-Xlint:unchecked")
+    options.isDeprecation = true
+}
