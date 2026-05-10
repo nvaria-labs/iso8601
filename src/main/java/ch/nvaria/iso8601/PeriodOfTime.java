@@ -29,18 +29,25 @@ public final class PeriodOfTime {
      */
     public static PeriodDurationRecord duration(String iso8601) {
 
-        Iso8601Parser parser = ParseTreeFactory.createParser(iso8601);
+        // The ANTLR grammar's `intervalT` rule starts at the `P` token and does not capture an
+        // optional leading minus. Strip it before parsing and re-attach to the result so the
+        // sign-aware Period.parse / Duration.parse downstream produce signed values.
+        boolean negative = iso8601 != null && !iso8601.isEmpty() && iso8601.charAt(0) == '-';
+        String input = negative ? iso8601.substring(1) : iso8601;
+
+        Iso8601Parser parser = ParseTreeFactory.createParser(input);
         ParseTree parseTree = parser.interval();
         String result = new PeriodOfTimeVisitor().visit(parseTree);
+
         String[] parts = result.split("T");
         Period period = null;
         if (!Objects.equals(parts[0], "P")) {
-            period = Period.parse(parts[0]);
+            period = Period.parse(negative ? "-" + parts[0] : parts[0]);
         }
 
         Duration duration = null;
-        if (parts.length != 1){
-            duration = Duration.parse("PT" + parts[1]);
+        if (parts.length != 1) {
+            duration = Duration.parse((negative ? "-PT" : "PT") + parts[1]);
         }
 
         return new PeriodDurationRecord(period, duration);
