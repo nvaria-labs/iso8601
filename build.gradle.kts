@@ -3,7 +3,7 @@ import io.github.simonhauck.release.version.api.Version
 plugins {
     `java-library`
     idea
-    id("com.github.ben-manes.versions") version "0.52.0"
+    id("com.github.ben-manes.versions") version "0.54.0"
     id("org.barfuin.gradle.jacocolog") version "3.1.0"
     id("io.github.simonhauck.release") version "1.4.0"
     id("com.palantir.git-version") version "4.0.0"
@@ -176,4 +176,13 @@ tasks.jacocoTestReport {
 tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.add("-Xlint:unchecked")
     options.isDeprecation = true
+}
+
+tasks.withType<Javadoc>().configureEach {
+    exclude("ch/nvaria/generated/**")
+    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:all,-missing", "-quiet")
+}
+
+tasks.named<Jar>("sourcesJar") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

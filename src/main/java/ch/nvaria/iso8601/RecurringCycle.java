@@ -25,10 +25,10 @@ public final class RecurringCycle {
     /**
      * Get the calculated trigger times of a repetition cycle (inclusive)
      * The first trigger is the startDateTime
-     * <p>
+     *
      * Example: R5/someDate wil result in 5 entries in the list of trigger times
      * If no start date is given, ZonedDateTime.now(zoneId) is used
-     * <p>
+     *
      *
      * @param iso8601 iso8601 string
      * @param zoneId ZoneId
@@ -69,11 +69,8 @@ public final class RecurringCycle {
     /**
      * Get the calculated trigger times of a repetition cycle (exclusive)
      * The first trigger is startDateTime + durationOfTrigger
-     * <p>
      * Example: R5/someDate wil result in 5 entries in the list of trigger times
      * If no start date is given, ZonedDateTime.now(zoneId) is used
-     * <p>
-     *
      * @param iso8601 iso8601 string
      * @param zoneId ZoneId
      * @return List of dates
@@ -113,7 +110,6 @@ public final class RecurringCycle {
     /**
      * Retrieves the number of repetitions Rn of an iso8601 string.
      * Example: R5/someDate wil result in 5
-     * <p>
      *
      * @param iso8601 iso8601 string
      * @return the number of repetitions, if Rn is unbounded (R-1/someDate) Integer.MAX_VALUE
@@ -150,7 +146,6 @@ public final class RecurringCycle {
 
     /**
      * Retrieves the period and duration R12/2008-03-01T13:00:00Z/P1Y2M10DT2H30M -> P1Y2M10DT2H30M
-     * <p>
      *
      * @param iso8601 iso8601 string
      * @return the period and duration
