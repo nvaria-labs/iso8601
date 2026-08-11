@@ -3,10 +3,11 @@ import io.github.simonhauck.release.version.api.Version
 plugins {
     `java-library`
     idea
-    id("com.github.ben-manes.versions") version "0.54.0"
-    id("org.barfuin.gradle.jacocolog") version "3.1.0"
-    id("io.github.simonhauck.release") version "1.4.0"
-    id("com.palantir.git-version") version "4.0.0"
+    alias(libs.plugins.versions)
+    alias(libs.plugins.jacocolog)
+    alias(libs.plugins.release)
+    alias(libs.plugins.git.version)
+    alias(libs.plugins.spdx.sbom)
     `maven-publish`
     jacoco
     antlr
@@ -32,8 +33,8 @@ release {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
     withSourcesJar()
     withJavadocJar()
 }
@@ -68,6 +69,98 @@ repositories {
 }
 
 
+// Single source of truth for our own license: both the POM and the SBOM patch below
+// read these, so the published metadata cannot drift apart. SPDX identifier form —
+// it is what the SBOM requires, and it is valid as a POM license name too.
+val licenseId = "Apache-2.0"
+val licenseUrl = "https://www.apache.org/licenses/LICENSE-2.0"
+val copyrightHolder = "Nvaria GmbH"
+
+
+spdxSbom {
+    onlyUseLocalLicenses.set(true)
+    targets {
+        create("release") {
+            // Everything on the runtime classpath (test deps stay out). Note this
+            // includes the ANTLR *tool* jar + ST4/treelayout — the antlr plugin puts
+            // it on 'api', so it is a real runtime-classpath entry here.
+            configurations.set(listOf("runtimeClasspath"))
+
+            scm {
+                tool.set("git")
+                uri.set("https://gitea.nvaria.cloud/nvaria/iso8601_lib")
+                revision.set(details.gitHash)
+            }
+
+            document {
+                name.set("iso8601lib")
+                namespace.set("https://nvaria.ch/spdx/iso8601lib/${project.version}")
+                creator.set("Organization: Nvaria GmbH")
+                packageSupplier.set("Organization: Nvaria GmbH")
+            }
+        }
+    }
+}
+
+// Two things the plugin cannot express, patched into the finished document:
+//
+//  1. the license of the root (project) package — hardcoded to NOASSERTION, no DSL
+//     and no task-extension hook for it (dependency licenses come from their POMs
+//     and are already correct);
+//  2. the download locations — everything resolves through the nexus mirror, so the
+//     plugin records internal, auth-required URLs that no consumer can fetch, and
+//     stamps the mirror host into every purl as a ?repository_url= qualifier.
+//
+// Deliberately NOT done via the plugin's taskExtension.mapRepoUri: that property is
+// @Internal, so changing the mapping would not invalidate the task and the SBOM would
+// silently go stale. Mutating the declared @OutputFile here keeps caching honest.
+tasks.named("spdxSbomForRelease") {
+    doLast {
+        val json = layout.buildDirectory.file("spdx/release.spdx.json").get().asFile
+        @Suppress("UNCHECKED_CAST")
+        val doc = groovy.json.JsonSlurper().parse(json) as MutableMap<String, Any>
+
+        // The root package is whatever SPDXRef-DOCUMENT DESCRIBES; don't match on name.
+        @Suppress("UNCHECKED_CAST")
+        val relationships = doc["relationships"] as List<Map<String, Any>>
+        val rootId = relationships.single {
+            it["spdxElementId"] == "SPDXRef-DOCUMENT" && it["relationshipType"] == "DESCRIBES"
+        }["relatedSpdxElement"]
+
+        @Suppress("UNCHECKED_CAST")
+        val packages = doc["packages"] as List<MutableMap<String, Any>>
+        val root = packages.single { it["SPDXID"] == rootId }
+        root["licenseDeclared"] = licenseId
+        root["licenseConcluded"] = licenseId
+        root["copyrightText"] = "Copyright $copyrightHolder"
+
+        // Our own artifacts genuinely only live in nexus — leave those pointing there.
+        // Everything else is a Central artifact the mirror merely proxies.
+        val mirror = "https://nexus.nvaria.cloud/repository/maven-public/"
+        val central = "https://repo1.maven.org/maven2/"
+        packages.filterNot { it["name"].toString().startsWith("ch.nvaria") }.forEach { pkg ->
+            val location = pkg["downloadLocation"] as? String
+            if (location != null && location.startsWith(mirror)) {
+                pkg["downloadLocation"] = central + location.removePrefix(mirror)
+            }
+            @Suppress("UNCHECKED_CAST")
+            val refs = pkg["externalRefs"] as? List<MutableMap<String, Any>> ?: emptyList()
+            refs.forEach { ref ->
+                val purl = ref["referenceLocator"] as? String ?: return@forEach
+                // Drop only the mirror qualifier; keep any others (classifier, type, …).
+                val kept = purl.substringAfter('?', "").split("&")
+                    .filterNot { it.startsWith("repository_url=") }
+                ref["referenceLocator"] = purl.substringBefore('?') +
+                        if (kept.any { it.isNotEmpty() }) "?" + kept.filter { it.isNotEmpty() }.joinToString("&") else ""
+            }
+        }
+
+        json.writeText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(doc)))
+    }
+}
+
+val sbomFile = layout.buildDirectory.file("spdx/release.spdx.json")
+
 publishing {
     publications {
         create<MavenPublication>("maven") {
@@ -75,6 +168,11 @@ publishing {
             artifactId = "iso8601lib"
 
             from(components["java"])
+            artifact(sbomFile) {
+                builtBy(tasks.named("spdxSbomForRelease"))
+                classifier = "sbom"
+                extension = "spdx.json"
+            }
             pom {
                 name.set("iso8601lib")
                 description.set("A Library to read iso8601 strings")
@@ -82,8 +180,8 @@ publishing {
 
                 licenses {
                     license {
-                        name.set("Apache License, Version 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                        name.set(licenseId)
+                        url.set(licenseUrl)
                     }
                 }
                 developers {

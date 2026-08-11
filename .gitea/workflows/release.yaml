@@ -22,7 +22,7 @@ jobs:
       NEXUS_USER: ${{ vars.DOCKERUSER }}
       NEXUS_PW: ${{ vars.DOCKERPW }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           token: ${{ vars.PAT}}
       - name: Build with Gradle

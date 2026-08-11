@@ -1,21 +1,27 @@
 [versions]
 
-junit5 = "5.13.3"
-junit5launcher="1.13.2"
-mockito ="5.21.0"
+junit = "6.1.3"
+junitlauncher="6.1.3"
+mockito ="5.23.0"
 instancio ="5.1.0"
 antlr = "4.13.2"
 hamcrest ="3.0"
 hamcrestdate="2.0.8"
 
+benmanesVersions = "0.61.0"
+jacocolog = "4.0.2"
+simonhauckRelease = "1.5.1"
+palantirGitVersion = "5.0.0"
+spdxSbom = "0.12.0"
+
 
 [libraries]
 
-junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit5" }
-junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit5" }
-junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit5" }
-junit-bom = { module = "org.junit:junit-bom", version.ref = "junit5" }
-junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit5launcher" }
+junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitlauncher" }
 
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
 mockito-junit-jupiter = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
@@ -28,3 +34,11 @@ antlr-v4 = { module = "org.antlr:antlr4", version.ref = "antlr" }
 
 hamcrest = { module = "org.hamcrest:hamcrest", version.ref = "hamcrest" }
 hamcrest-date = { module = "org.exparity:hamcrest-date", version.ref = "hamcrestdate" }
+
+[plugins]
+
+versions = { id = "io.github.ben-manes.versions", version.ref = "benmanesVersions" }
+jacocolog = { id = "org.barfuin.gradle.jacocolog", version.ref = "jacocolog" }
+release = { id = "io.github.simonhauck.release", version.ref = "simonhauckRelease" }
+git-version = { id = "com.palantir.git-version", version.ref = "palantirGitVersion" }
+spdx-sbom = { id = "org.spdx.sbom", version.ref = "spdxSbom" }
