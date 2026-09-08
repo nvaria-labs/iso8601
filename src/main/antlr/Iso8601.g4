@@ -386,6 +386,12 @@ datetime
     | datetimeExtended
     ;
 
+// ENTRYRULE (a datetime or a date alone)
+dateOrDatetime
+    : datetime
+    | date
+    ;
+
 datetimeBasic
     : datePreciseBasic T localTimeBasic timeZoneBasic?
     ;
@@ -429,11 +435,13 @@ monthDateExtended
     : month '-' day
     ;
 
+// basic format is ambiguous (0203 = year 203 or month 02 day 03); a date wins, so that
+// reduced precision drops low-order components as everywhere else in the standard
 intervalYMDTimeBasic
-    : monthDateBasic
-    | day
+    : day
     | datetimeBasic
     | dateBasic
+    | monthDateBasic
     | localTimeBasic
     ;
 
@@ -443,7 +451,6 @@ intervalYMDTimeExtended
     | datetimeExtended
     | dateExtended
     | localTimeExtended
-    | monthDateExtended
     ;
 
 // ENTRYRULE P0001-02-03T00:00:00 4.4.4.2.2
@@ -474,6 +481,17 @@ timeBeginEndExtended
     : intervalYMDTimeExtended '/' intervalYMDTimeExtended
     ;
 
+// start or end point of a time interval: a date and time, or a date alone (4.4.4.3 / 4.4.4.4)
+intervalPointBasic
+    : datetimeBasic
+    | dateBasic
+    ;
+
+intervalPointExtended
+    : datetimeExtended
+    | dateExtended
+    ;
+
 // ENTRYRULE 1234-05-06T00:07:08/P1M 4.4.4.3
 timeBeginInterval
     : timeBeginIntervalBasic
@@ -481,11 +499,11 @@ timeBeginInterval
     ;
 
 timeBeginIntervalBasic
-    : datetimeBasic '/' intervalBasic
+    : intervalPointBasic '/' intervalBasic
     ;
 
 timeBeginIntervalExtended
-    : datetimeExtended '/' intervalExtended
+    : intervalPointExtended '/' intervalExtended
     ;
 
 // ENTRYRULE P138Y/1234-05-06T00:07:09 4.4.4.4
@@ -495,11 +513,11 @@ timeIntervalEnd
     ;
 
 timeIntervalEndBasic
-    : intervalBasic '/' datetimeBasic
+    : intervalBasic '/' intervalPointBasic
     ;
 
 timeIntervalEndExtended
-    : intervalExtended '/' datetimeExtended
+    : intervalExtended '/' intervalPointExtended
     ;
 
 // ENTRYRULE (any duration)
@@ -522,10 +540,11 @@ durationExtended
     | intervalExtended
     ;
 
+// R, R-1 (unbounded) or Rn. Written as '-' int_ rather than a '-1' literal:
+// a '-1' literal would become its own lexer token and swallow the '-1' in any
+// date with month 10-12 or day 10-19 (e.g. 2026-09-15), breaking every rule below.
 recurringCount
-    : R
-    | R '-1'
-    | R int_?
+    : R ('-'? int_)?
     ;
 
 // ENTRYRULE R12/1900-01-01T00:00:00/P4294967296S 4.5.3

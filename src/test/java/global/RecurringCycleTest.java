@@ -3,17 +3,20 @@ package global;
 import ch.nvaria.iso8601.RecurringCycle;
 import ch.nvaria.iso8601.base.models.PeriodDurationRecord;
 import org.exparity.hamcrest.date.ZonedDateTimeMatchers;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -85,7 +88,7 @@ class RecurringCycleTest {
     @ValueSource(strings = {"PT30S"})
     void getCycleRepetitions_fail(String iso8601){
 
-        assertThrows(NumberFormatException.class,
+        assertThrows(DateTimeParseException.class,
                 ()-> RecurringCycle.repetitions(iso8601));
     }
 
@@ -140,5 +143,50 @@ class RecurringCycleTest {
 
     }
 
+
+    // Regression: the grammar once had a '-1' literal token which swallowed the "-1" in any
+    // date with month 10-12 or day 10-19 (e.g. 2026-09-15), so those never parsed.
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "R/2026-09-15T10:00:00Z/PT1H",
+            "R-1/2026-09-15T10:00:00Z/PT1H",
+            "R/2026-10-05T10:00:00Z/PT1H",
+            "R/2026-11-19T10:00:00Z/PT1H",
+            "R/2026-12-10T10:00:00-10:00/PT1H"})
+    void dashOneDates_unbounded(String iso8601) {
+        assertThat(RecurringCycle.repetitions(iso8601), is(Integer.MAX_VALUE));
+        Optional<ZonedDateTime> startDate = RecurringCycle.startDate(iso8601, ZoneId.of("Z"));
+        assertThat(startDate.isPresent(), is(true));
+        assertThat(startDate.get().getYear(), is(2026));
+        PeriodDurationRecord pdr = RecurringCycle.periodDuration(iso8601);
+        assertThat(pdr.duration(), is(Duration.ofHours(1)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"R3/2026-09-15T10:00:00Z/PT1H", "R3/2026-11-19T10:00:00Z/PT1H"})
+    void dashOneDates_triggerTimes(String iso8601) {
+        ZonedDateTime start = RecurringCycle.startDate(iso8601, ZoneId.of("Z")).orElseThrow();
+        assertThat(start.getMonthValue() * 100 + start.getDayOfMonth(), is(anyOf(is(915), is(1119))));
+        assertThat(start.getHour(), is(10));
+
+        List<ZonedDateTime> inclusive = RecurringCycle.triggerTimesInclusive(iso8601, ZoneId.of("Z"));
+        assertThat(inclusive.size(), is(3));
+        assertThat(inclusive.get(0), is(start));
+        assertThat(inclusive.get(1), is(start.plusHours(1)));
+        assertThat(inclusive.get(2), is(start.plusHours(2)));
+
+        List<ZonedDateTime> exclusive = RecurringCycle.triggerTimesExclusive(iso8601, ZoneId.of("Z"));
+        assertThat(exclusive.size(), is(3));
+        assertThat(exclusive.get(0), is(start.plusHours(1)));
+        assertThat(exclusive.get(2), is(start.plusHours(3)));
+    }
+
+    @Test
+    void negativeOffset_keepsOffset() {
+        ZonedDateTime start = RecurringCycle.startDate("R2/2026-12-10T10:00:00-10:00/PT1H", ZoneId.of("Z")).orElseThrow();
+        assertThat(start.getOffset().getTotalSeconds(), is(-10 * 3600));
+        assertThat(start.getDayOfMonth(), is(10));
+    }
 
 }
