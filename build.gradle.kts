@@ -120,7 +120,23 @@ tasks.named("spdxSbomForRelease") {
         root["copyrightText"] = "Copyright $copyrightHolder"
         root["downloadLocation"] = "git+$projectUrl.git@${details.gitHashFull}"
 
+        // The plugin turns a POM license it can't match by URL into a LicenseRef, even when its
+        // name already is an SPDX id (antlr4-runtime: "BSD-3-Clause"). Swap those back.
+        val knownSpdxIds = setOf("Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "MIT")
+        @Suppress("UNCHECKED_CAST")
+        val extracted = doc["hasExtractedLicensingInfos"] as? MutableList<Map<String, Any>> ?: mutableListOf()
+        val replacements = extracted.filter { it["name"] in knownSpdxIds }
+            .associate { it["licenseId"] as String to it["name"] as String }
+        extracted.removeIf { it["licenseId"] in replacements }
+        if (extracted.isEmpty()) doc.remove("hasExtractedLicensingInfos")
+
         packages.forEach { pkg ->
+            for (field in listOf("licenseDeclared", "licenseConcluded")) {
+                val expr = pkg[field] as? String ?: continue
+                pkg[field] = replacements.entries.fold(expr) { acc, (ref, id) ->
+                    acc.replace(Regex("\\b${Regex.escape(ref)}\\b"), id)
+                }
+            }
             @Suppress("UNCHECKED_CAST")
             val refs = pkg["externalRefs"] as? List<MutableMap<String, Any>> ?: emptyList()
             refs.forEach { ref ->
