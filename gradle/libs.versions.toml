@@ -2,38 +2,32 @@
 
 junit = "6.1.3"
 junitlauncher="6.1.3"
-mockito ="5.23.0"
-instancio ="5.1.0"
 antlr = "4.13.2"
 hamcrest ="3.0"
 hamcrestdate="2.0.8"
 
-benmanesVersions = "0.61.0"
-jacocolog = "4.0.2"
+benmanesVersions = "0.67.0"
+jacocolog = "4.0.3"
 simonhauckRelease = "1.5.1"
 palantirGitVersion = "5.1.0"
 spdxSbom = "0.12.0"
-
+# palantir git-version uses Guava without declaring it; Gradle >= 9.8 no longer leaks it
+guava = "33.8.0-jre"
 
 [libraries]
 
 junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
-junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitlauncher" }
-
-mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
-mockito-junit-jupiter = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
-
-instancio-core = { module = "org.instancio:instancio-core", version.ref = "instancio" }
-instancio-junit = { module = "org.instancio:instancio-junit", version.ref = "instancio" }
 
 antlr-v4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr" }
 antlr-v4 = { module = "org.antlr:antlr4", version.ref = "antlr" }
 
 hamcrest = { module = "org.hamcrest:hamcrest", version.ref = "hamcrest" }
 hamcrest-date = { module = "org.exparity:hamcrest-date", version.ref = "hamcrestdate" }
+
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
 
 [plugins]
 

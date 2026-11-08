@@ -1,7 +1,7 @@
-package ch.nvaria.iso8601.base.mappers;
+package ch.nvaria.iso8601.internal;
 
-import ch.nvaria.generated.Iso8601Parser;
-import ch.nvaria.iso8601.base.models.PeriodDurationRecord;
+import ch.nvaria.iso8601.internal.parser.Iso8601Parser;
+import ch.nvaria.iso8601.model.PeriodDuration;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
@@ -12,7 +12,7 @@ import java.time.Period;
 import java.time.format.DateTimeParseException;
 
 /**
- * Maps ISO 8601-1 clause 5.5.2 durations to a {@link PeriodDurationRecord}.
+ * Maps ISO 8601-1 clause 5.5.2 durations to a {@link PeriodDuration}.
  * <ul>
  *   <li>Designator format {@code P1Y2M3DT4H5M6S}, {@code P2W}. The smallest component may carry a
  *       fraction ({@code PT1.5H}, {@code P0.5D}). Fractional years or months have no exact length and are rejected.
@@ -29,21 +29,21 @@ public final class DurationMapper {
     private DurationMapper() {
     }
 
-    public static PeriodDurationRecord toPeriodDuration(Iso8601Parser.IntervalContext c) {
+    public static PeriodDuration toPeriodDuration(Iso8601Parser.IntervalContext c) {
         return c.intervalT() != null ? designator(c.intervalT()) : alternative(c.intervalYMD());
     }
 
-    public static PeriodDurationRecord toPeriodDuration(Iso8601Parser.IntervalBasicContext c) {
+    public static PeriodDuration toPeriodDuration(Iso8601Parser.IntervalBasicContext c) {
         return c.intervalT() != null ? designator(c.intervalT()) : alternative(c.intervalYMDBasic());
     }
 
-    public static PeriodDurationRecord toPeriodDuration(Iso8601Parser.IntervalExtendedContext c) {
+    public static PeriodDuration toPeriodDuration(Iso8601Parser.IntervalExtendedContext c) {
         return c.intervalT() != null ? designator(c.intervalT()) : alternative(c.intervalYMDExtended());
     }
 
     // ---------------------------------------------------------------- P1Y2M3DT4H5M6S
 
-    private static PeriodDurationRecord designator(Iso8601Parser.IntervalTContext c) {
+    private static PeriodDuration designator(Iso8601Parser.IntervalTContext c) {
         BigDecimal years = null, months = null, weeks = null, days = null, hours = null, minutes = null, seconds = null;
         boolean afterT = false;
         BigDecimal pending = null;
@@ -100,16 +100,16 @@ public final class DurationMapper {
         }
         Duration duration = hasDuration ? toDuration(exactSeconds) : null;
 
-        return new PeriodDurationRecord(period, duration);
+        return new PeriodDuration(period, duration);
     }
 
     // ---------------------------------------------------------------- P0001-02-03T04:05:06
 
-    private static PeriodDurationRecord alternative(Iso8601Parser.IntervalYMDContext c) {
+    private static PeriodDuration alternative(Iso8601Parser.IntervalYMDContext c) {
         return c.intervalYMDBasic() != null ? alternative(c.intervalYMDBasic()) : alternative(c.intervalYMDExtended());
     }
 
-    private static PeriodDurationRecord alternative(Iso8601Parser.IntervalYMDBasicContext c) {
+    private static PeriodDuration alternative(Iso8601Parser.IntervalYMDBasicContext c) {
         var t = c.intervalYMDTimeBasic();
         if (t.datetimeBasic() != null) {
             var dt = t.datetimeBasic();
@@ -131,7 +131,7 @@ public final class DurationMapper {
         return build(null, DateTimeMapper.rawTime(t.localTimeBasic()), c.getText());
     }
 
-    private static PeriodDurationRecord alternative(Iso8601Parser.IntervalYMDExtendedContext c) {
+    private static PeriodDuration alternative(Iso8601Parser.IntervalYMDExtendedContext c) {
         var t = c.intervalYMDTimeExtended();
         if (t.datetimeExtended() != null) {
             var dt = t.datetimeExtended();
@@ -153,7 +153,7 @@ public final class DurationMapper {
         return build(null, DateTimeMapper.rawTime(t.localTimeExtended()), c.getText());
     }
 
-    private static PeriodDurationRecord build(DateTimeMapper.RawDate date, DateTimeMapper.RawTime time, String text) {
+    private static PeriodDuration build(DateTimeMapper.RawDate date, DateTimeMapper.RawTime time, String text) {
         // 5.5.2.4: components of the alternative format must stay within the range of the
         // corresponding date and time components (P0000-13-00 is not 13 months)
         if (date != null && (date.month() > 12 || date.day() > 31)) {
@@ -167,7 +167,7 @@ public final class DurationMapper {
         if (period == null && duration == null) {
             throw new DateTimeParseException("Empty duration: " + text, text, 0);
         }
-        return new PeriodDurationRecord(period, duration);
+        return new PeriodDuration(period, duration);
     }
 
     // ---------------------------------------------------------------- helpers

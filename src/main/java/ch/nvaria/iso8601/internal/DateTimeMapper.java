@@ -1,6 +1,6 @@
-package ch.nvaria.iso8601.base.mappers;
+package ch.nvaria.iso8601.internal;
 
-import ch.nvaria.generated.Iso8601Parser;
+import ch.nvaria.iso8601.internal.parser.Iso8601Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 
 import java.math.BigDecimal;

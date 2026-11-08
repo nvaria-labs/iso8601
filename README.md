@@ -2,7 +2,7 @@
 
 Library to parse ISO 8601-1 dates, times, durations, time intervals and recurring time intervals.
 
-Based on the antlr v4 grammar by "Student Main" licensed under the 0BSD license.
+Based on the ANTLR v4 grammar by "Student Main" from antlr/grammars-v4, see [License](#license).
 
 ## API
 
@@ -22,6 +22,10 @@ out-of-range values such as month 13.
 | `RecurringCycle` | `triggerTimesInclusive(String, ZoneId[, int limit])` | recurring interval | the `n` starts of each repetition |
 | `RecurringCycle` | `triggerTimesExclusive(String, ZoneId[, int limit])` | recurring interval | the `n` ends of each repetition |
 | `RecurringCycle` | `triggersInclusive` / `triggersExclusive` | recurring interval | lazy `Stream`, infinite for unbounded |
+| `RecurringCycle` | `startDate(String, ZoneId)` | recurring interval | `Optional` start, empty when the string has none |
+
+The `RecurringCycle` trigger methods also accept a `java.time.Clock` instead of a `ZoneId`, to control the start
+of cycles without one (e.g. in tests).
 
 ## Supported representations
 
@@ -44,15 +48,24 @@ out-of-range values such as month 13.
 Extensions beyond ISO 8601-1:
 
 - negative durations `-P1DT2H` (ISO 8601-2)
-- zone ids in brackets `2026-09-15T10:00Z[Europe/Berlin]` (java.time)
+- zone ids in brackets after a date or date-time, basic or extended format: `2026-09-15T10:00Z[Europe/Berlin]`,
+  `20260915T1000[Europe/Berlin]` (java.time). The result is in that zone; an offset fixes the instant,
+  otherwise the local time is taken in the bracket zone.
 
 Library conventions:
 
 - A date without time means the start of that day in the given zone.
 - Reduced precision means the first day, month, week or century.
-- A recurring interval without a start starts at `ZonedDateTime.now(zoneId)`.
+- A recurring interval without a start starts at the current time: `ZonedDateTime.now(zoneId)`, or the
+  given `Clock` for the overloads taking one. `startDate` returns empty for it.
 - Each repetition of a recurring interval starts where the previous one ended.
 - Fractional years and months are rejected because they have no exact length. Fractional weeks and days
   are converted to the exact part.
 
 Not supported: ISO 8601-2 (EDTF, uncertain or approximate dates, sets), leap seconds (`23:59:60`).
+
+## License
+
+Apache License 2.0, see [LICENSE](LICENSE). The ANTLR grammar `src/main/antlr/Iso8601.g4` is based on the
+0BSD-licensed grammar by "Student Main" and stays under 0BSD, including our modifications; see [NOTICE](NOTICE)
+for its origin and the list of changes.

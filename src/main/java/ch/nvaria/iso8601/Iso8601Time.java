@@ -1,8 +1,8 @@
 package ch.nvaria.iso8601;
 
-import ch.nvaria.generated.Iso8601Parser;
-import ch.nvaria.iso8601.base.factories.ParseTreeFactory;
-import ch.nvaria.iso8601.base.mappers.DateTimeMapper;
+import ch.nvaria.iso8601.internal.DateTimeMapper;
+import ch.nvaria.iso8601.internal.ParseTreeFactory;
+import ch.nvaria.iso8601.internal.parser.Iso8601Parser;
 
 import java.time.LocalTime;
 import java.time.OffsetTime;

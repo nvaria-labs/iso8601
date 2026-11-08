@@ -1,7 +1,7 @@
-package ch.nvaria.iso8601.base.factories;
+package ch.nvaria.iso8601.internal;
 
-import ch.nvaria.generated.Iso8601Lexer;
-import ch.nvaria.generated.Iso8601Parser;
+import ch.nvaria.iso8601.internal.parser.Iso8601Lexer;
+import ch.nvaria.iso8601.internal.parser.Iso8601Parser;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CodePointCharStream;

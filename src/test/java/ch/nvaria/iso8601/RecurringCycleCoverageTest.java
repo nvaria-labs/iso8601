@@ -1,19 +1,20 @@
-package global;
+package ch.nvaria.iso8601;
 
-import ch.nvaria.iso8601.RecurringCycle;
-import ch.nvaria.iso8601.base.models.PeriodDurationRecord;
-import ch.nvaria.iso8601.base.models.TimeIntervalRecord;
+import ch.nvaria.iso8601.model.PeriodDuration;
+import ch.nvaria.iso8601.model.TimeInterval;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -72,7 +73,7 @@ class RecurringCycleCoverageTest {
 
     @Test
     void mixedPeriodAndDurationStep() {
-        PeriodDurationRecord pd = RecurringCycle.periodDuration("R2/2026-09-15T10:00:00Z/P1DT12H");
+        PeriodDuration pd = RecurringCycle.periodDuration("R2/2026-09-15T10:00:00Z/P1DT12H");
         assertThat(pd.period(), is(Period.ofDays(1)));
         assertThat(pd.duration(), is(Duration.ofHours(12)));
         assertThat(RecurringCycle.triggerTimesExclusive("R2/2026-09-15T10:00:00Z/P1DT12H", UTC),
@@ -81,7 +82,7 @@ class RecurringCycleCoverageTest {
 
     @Test
     void startEndFormDurationIsExact() {
-        TimeIntervalRecord interval = RecurringCycle.interval("R2/2026-09-15T10:00:00Z/2026-09-16T10:30:00Z", UTC);
+        TimeInterval interval = RecurringCycle.interval("R2/2026-09-15T10:00:00Z/2026-09-16T10:30:00Z", UTC);
         assertThat(interval.start(), is(START));
         assertThat(interval.end(), is(START.plusHours(24).plusMinutes(30)));
         assertThat(interval.duration().period(), is(nullValue()));
@@ -89,12 +90,27 @@ class RecurringCycleCoverageTest {
     }
 
     @Test
-    void durationOnlyFormStartsNow() {
-        TimeIntervalRecord interval = RecurringCycle.interval("R2/PT1H", UTC);
+    void durationOnlyFormHasNoStart() {
+        TimeInterval interval = RecurringCycle.interval("R2/PT1H", UTC);
         assertThat(interval.start(), is(nullValue()));
-        ZonedDateTime before = ZonedDateTime.now(UTC);
-        ZonedDateTime start = RecurringCycle.startDate("R2/PT1H", UTC).orElseThrow();
-        assertThat(start.isBefore(before.minusSeconds(1)) || start.isAfter(before.plusSeconds(1)), is(false));
+        assertThat(RecurringCycle.startDate("R2/PT1H", UTC), is(Optional.empty()));
+    }
+
+    @Test
+    void durationOnlyFormStartsAtClock() {
+        Clock clock = Clock.fixed(START.toInstant(), UTC);
+        assertThat(RecurringCycle.triggerTimesInclusive("R2/PT1H", clock), contains(START, START.plusHours(1)));
+        assertThat(RecurringCycle.triggerTimesExclusive("R2/PT1H", clock), contains(START.plusHours(1), START.plusHours(2)));
+        assertThat(RecurringCycle.triggerTimesInclusive("R/PT1H", clock, 2), contains(START, START.plusHours(1)));
+        assertThat(RecurringCycle.triggerTimesExclusive("R/PT1H", clock, 2), contains(START.plusHours(1), START.plusHours(2)));
+    }
+
+    @Test
+    void clockZoneAppliesWhenStartHasNoOffset() {
+        ZoneId berlin = ZoneId.of("Europe/Berlin");
+        Clock clock = Clock.fixed(START.toInstant(), berlin);
+        ZonedDateTime first = RecurringCycle.triggersInclusive("R2/2026-09-15T10:00:00/PT1H", clock).findFirst().orElseThrow();
+        assertThat(first, is(ZonedDateTime.of(2026, 9, 15, 10, 0, 0, 0, berlin)));
     }
 
     @Test

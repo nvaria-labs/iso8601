@@ -1,8 +1,7 @@
-package global;
+package ch.nvaria.iso8601;
 
-import ch.nvaria.iso8601.PeriodOfTime;
-import ch.nvaria.iso8601.base.models.PeriodDurationRecord;
-import ch.nvaria.iso8601.base.models.TimeIntervalRecord;
+import ch.nvaria.iso8601.model.PeriodDuration;
+import ch.nvaria.iso8601.model.TimeInterval;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -67,7 +66,7 @@ class PeriodOfTimeCoverageTest {
             "-P1DT2H,                P-1D,     PT-2H",
     })
     void durations(String iso8601, String period, String duration) {
-        PeriodDurationRecord actual = PeriodOfTime.duration(iso8601);
+        PeriodDuration actual = PeriodOfTime.duration(iso8601);
         assertThat(actual.period(), is(period == null ? null : Period.parse(period)));
         assertThat(actual.duration(), is(duration == null ? null : Duration.parse(duration)));
     }
@@ -119,7 +118,7 @@ class PeriodOfTimeCoverageTest {
             "P1M/2026-03-31,                                    2026-02-28T00:00:00Z,      2026-03-31T00:00:00Z,      P1M",
     })
     void intervals(String iso8601, String start, String end, String duration) {
-        TimeIntervalRecord actual = PeriodOfTime.interval(iso8601, UTC);
+        TimeInterval actual = PeriodOfTime.interval(iso8601, UTC);
         assertThat(actual.start(), is(ZonedDateTime.parse(start)));
         assertThat(actual.end(), is(ZonedDateTime.parse(end)));
         assertThat(actual.start().getOffset(), is(ZonedDateTime.parse(start).getOffset()));
@@ -129,16 +128,16 @@ class PeriodOfTimeCoverageTest {
 
     @Test
     void bareDurationHasNoStartOrEnd() {
-        TimeIntervalRecord actual = PeriodOfTime.interval("P1D", UTC);
+        TimeInterval actual = PeriodOfTime.interval("P1D", UTC);
         assertThat(actual.start(), is(nullValue()));
         assertThat(actual.end(), is(nullValue()));
         assertThat(actual.optionalStart().isPresent(), is(false));
-        assertThat(actual.duration(), is(new PeriodDurationRecord(Period.ofDays(1), null)));
+        assertThat(actual.duration(), is(new PeriodDuration(Period.ofDays(1), null)));
     }
 
     @Test
     void intervalWithoutOffsetUsesZoneId() {
-        TimeIntervalRecord actual = PeriodOfTime.interval("2026-09-15T10:00:00/PT1H", BERLIN);
+        TimeInterval actual = PeriodOfTime.interval("2026-09-15T10:00:00/PT1H", BERLIN);
         assertThat(actual.start(), is(ZonedDateTime.of(2026, 9, 15, 10, 0, 0, 0, BERLIN)));
         assertThat(actual.end(), is(ZonedDateTime.of(2026, 9, 15, 11, 0, 0, 0, BERLIN)));
     }
@@ -146,7 +145,7 @@ class PeriodOfTimeCoverageTest {
     @Test
     void intervalAcrossDaylightSavingIsCalendarBased() {
         // 2026-10-25 02:00 CEST -> 01:00 CET, the day has 25 hours
-        TimeIntervalRecord actual = PeriodOfTime.interval("2026-10-25/P1D", BERLIN);
+        TimeInterval actual = PeriodOfTime.interval("2026-10-25/P1D", BERLIN);
         assertThat(Duration.between(actual.start(), actual.end()), is(Duration.ofHours(25)));
         assertThat(PeriodOfTime.durationInMillisFrom("P1D", actual.start()), is(25L * 3600 * 1000));
     }
@@ -160,11 +159,11 @@ class PeriodOfTimeCoverageTest {
 
     // ---------------------------------------------------------------- helpers
 
-    private static PeriodDurationRecord parse(String duration) {
+    private static PeriodDuration parse(String duration) {
         // "P1M2DT3H" -> period P1M2D, duration PT3H; "PT1H" -> duration only; "P1D" -> period only
         String[] parts = duration.split("T");
         Period period = parts[0].equals("P") ? null : Period.parse(parts[0]);
         Duration d = parts.length == 1 ? null : Duration.parse("PT" + parts[1]);
-        return new PeriodDurationRecord(period, d);
+        return new PeriodDuration(period, d);
     }
 }

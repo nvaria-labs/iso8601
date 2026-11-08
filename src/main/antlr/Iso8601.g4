@@ -10,6 +10,11 @@
 // LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 // OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 // PERFORMANCE OF THIS SOFTWARE.
+//
+// Modifications Copyright (C) 2024-2026 Nvaria GmbH, released under the same
+// license. See NOTICE for the list of changes.
+//
+// SPDX-License-Identifier: 0BSD
 
 // ISO 8601 all-in-one grammar file
 // choose an entry rule on your demand

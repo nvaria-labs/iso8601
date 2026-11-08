@@ -1,8 +1,8 @@
-package ch.nvaria.iso8601.base.mappers;
+package ch.nvaria.iso8601.internal;
 
-import ch.nvaria.generated.Iso8601Parser;
-import ch.nvaria.iso8601.base.models.PeriodDurationRecord;
-import ch.nvaria.iso8601.base.models.TimeIntervalRecord;
+import ch.nvaria.iso8601.internal.parser.Iso8601Parser;
+import ch.nvaria.iso8601.model.PeriodDuration;
+import ch.nvaria.iso8601.model.TimeInterval;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -11,7 +11,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 
 /**
- * Maps ISO 8601-1 clause 5.5 time intervals to a {@link TimeIntervalRecord}.
+ * Maps ISO 8601-1 clause 5.5 time intervals to a {@link TimeInterval}.
  * <p>
  * The four forms {@code start/end}, {@code start/duration}, {@code duration/end} and {@code duration} are
  * supported. An end that omits higher-order components ({@code 2026-09-15/17}, {@code 2026-09-15/09-17},
@@ -24,11 +24,11 @@ public final class TimeIntervalMapper {
     private TimeIntervalMapper() {
     }
 
-    public static TimeIntervalRecord toInterval(Iso8601Parser.DurationContext c, ZoneId zone) {
+    public static TimeInterval toInterval(Iso8601Parser.DurationContext c, ZoneId zone) {
         return c.durationBasic() != null ? toInterval(c.durationBasic(), zone) : toInterval(c.durationExtended(), zone);
     }
 
-    public static TimeIntervalRecord toInterval(Iso8601Parser.DurationBasicContext c, ZoneId zone) {
+    public static TimeInterval toInterval(Iso8601Parser.DurationBasicContext c, ZoneId zone) {
         if (c.timeBeginEndBasic() != null) {
             var be = c.timeBeginEndBasic();
             ZonedDateTime start = point(be.intervalYMDTimeBasic(0), null, zone);
@@ -38,19 +38,19 @@ public final class TimeIntervalMapper {
         if (c.timeBeginIntervalBasic() != null) {
             var bi = c.timeBeginIntervalBasic();
             ZonedDateTime start = point(bi.intervalPointBasic(), zone);
-            PeriodDurationRecord pd = DurationMapper.toPeriodDuration(bi.intervalBasic());
-            return new TimeIntervalRecord(start, pd.addTo(start), pd);
+            PeriodDuration pd = DurationMapper.toPeriodDuration(bi.intervalBasic());
+            return new TimeInterval(start, pd.addTo(start), pd);
         }
         if (c.timeIntervalEndBasic() != null) {
             var ie = c.timeIntervalEndBasic();
-            PeriodDurationRecord pd = DurationMapper.toPeriodDuration(ie.intervalBasic());
+            PeriodDuration pd = DurationMapper.toPeriodDuration(ie.intervalBasic());
             ZonedDateTime end = point(ie.intervalPointBasic(), zone);
-            return new TimeIntervalRecord(pd.subtractFrom(end), end, pd);
+            return new TimeInterval(pd.subtractFrom(end), end, pd);
         }
-        return new TimeIntervalRecord(null, null, DurationMapper.toPeriodDuration(c.intervalBasic()));
+        return new TimeInterval(null, null, DurationMapper.toPeriodDuration(c.intervalBasic()));
     }
 
-    public static TimeIntervalRecord toInterval(Iso8601Parser.DurationExtendedContext c, ZoneId zone) {
+    public static TimeInterval toInterval(Iso8601Parser.DurationExtendedContext c, ZoneId zone) {
         if (c.timeBeginEndExtended() != null) {
             var be = c.timeBeginEndExtended();
             ZonedDateTime start = point(be.intervalYMDTimeExtended(0), null, zone);
@@ -60,16 +60,16 @@ public final class TimeIntervalMapper {
         if (c.timeBeginIntervalExtended() != null) {
             var bi = c.timeBeginIntervalExtended();
             ZonedDateTime start = point(bi.intervalPointExtended(), zone);
-            PeriodDurationRecord pd = DurationMapper.toPeriodDuration(bi.intervalExtended());
-            return new TimeIntervalRecord(start, pd.addTo(start), pd);
+            PeriodDuration pd = DurationMapper.toPeriodDuration(bi.intervalExtended());
+            return new TimeInterval(start, pd.addTo(start), pd);
         }
         if (c.timeIntervalEndExtended() != null) {
             var ie = c.timeIntervalEndExtended();
-            PeriodDurationRecord pd = DurationMapper.toPeriodDuration(ie.intervalExtended());
+            PeriodDuration pd = DurationMapper.toPeriodDuration(ie.intervalExtended());
             ZonedDateTime end = point(ie.intervalPointExtended(), zone);
-            return new TimeIntervalRecord(pd.subtractFrom(end), end, pd);
+            return new TimeInterval(pd.subtractFrom(end), end, pd);
         }
-        return new TimeIntervalRecord(null, null, DurationMapper.toPeriodDuration(c.intervalExtended()));
+        return new TimeInterval(null, null, DurationMapper.toPeriodDuration(c.intervalExtended()));
     }
 
     // ---------------------------------------------------------------- points
@@ -138,10 +138,10 @@ public final class TimeIntervalMapper {
         return ref;
     }
 
-    private static TimeIntervalRecord between(ZonedDateTime start, ZonedDateTime end) {
+    private static TimeInterval between(ZonedDateTime start, ZonedDateTime end) {
         if (end.isBefore(start)) {
             throw new DateTimeParseException("Interval end " + end + " is before start " + start, start + "/" + end, 0);
         }
-        return new TimeIntervalRecord(start, end, new PeriodDurationRecord(null, Duration.between(start, end)));
+        return new TimeInterval(start, end, new PeriodDuration(null, Duration.between(start, end)));
     }
 }

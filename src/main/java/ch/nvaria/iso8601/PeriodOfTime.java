@@ -1,11 +1,11 @@
 package ch.nvaria.iso8601;
 
-import ch.nvaria.generated.Iso8601Parser;
-import ch.nvaria.iso8601.base.factories.ParseTreeFactory;
-import ch.nvaria.iso8601.base.mappers.DurationMapper;
-import ch.nvaria.iso8601.base.mappers.TimeIntervalMapper;
-import ch.nvaria.iso8601.base.models.PeriodDurationRecord;
-import ch.nvaria.iso8601.base.models.TimeIntervalRecord;
+import ch.nvaria.iso8601.internal.DurationMapper;
+import ch.nvaria.iso8601.internal.ParseTreeFactory;
+import ch.nvaria.iso8601.internal.TimeIntervalMapper;
+import ch.nvaria.iso8601.internal.parser.Iso8601Parser;
+import ch.nvaria.iso8601.model.PeriodDuration;
+import ch.nvaria.iso8601.model.TimeInterval;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -34,7 +34,7 @@ public final class PeriodOfTime {
      * @return the calendar and exact parts of the duration
      * @throws DateTimeParseException if the string is not a valid ISO 8601 duration or interval
      */
-    public static PeriodDurationRecord duration(String iso8601) {
+    public static PeriodDuration duration(String iso8601) {
         boolean negative = iso8601 != null && !iso8601.isEmpty() && iso8601.charAt(0) == '-';
         if (negative) {
             return ParseTreeFactory.parse(iso8601.substring(1), Iso8601Parser::interval, DurationMapper::toPeriodDuration).negated();
@@ -54,7 +54,7 @@ public final class PeriodOfTime {
      * @return the interval
      * @throws DateTimeParseException if the string is not a valid ISO 8601 duration or interval
      */
-    public static TimeIntervalRecord interval(String iso8601, ZoneId zoneId) {
+    public static TimeInterval interval(String iso8601, ZoneId zoneId) {
         return ParseTreeFactory.parse(iso8601, Iso8601Parser::duration, ctx -> TimeIntervalMapper.toInterval(ctx, zoneId));
     }
 

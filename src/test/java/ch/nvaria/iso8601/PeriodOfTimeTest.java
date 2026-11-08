@@ -1,14 +1,15 @@
-package global;
+package ch.nvaria.iso8601;
 
-import ch.nvaria.iso8601.PeriodOfTime;
-import ch.nvaria.iso8601.base.models.PeriodDurationRecord;
+import ch.nvaria.iso8601.model.PeriodDuration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -23,25 +24,31 @@ class PeriodOfTimeTest {
     @ParameterizedTest
     @ValueSource(strings = {"PT10H4M30S", "P3Y6M4DT12H30M50S"})
     void getPeriodOfTime_Duration(String iso8601){
-      PeriodDurationRecord result = PeriodOfTime.duration(iso8601);
+      PeriodDuration result = PeriodOfTime.duration(iso8601);
       assertThat(result.duration().getSeconds(), is(greaterThan(30L)));
     }
 
 
-    @ParameterizedTest
-    @ValueSource(strings = {"PT10H4M30S", "P3Y6M4DT12H30M50S"})
-    void getPeriodOfTime_DurationInMillisLDT(String iso8601){
-        long result = PeriodOfTime.durationInMillisFrom(iso8601, LocalDateTime.now());
-        System.out.println(result);
-        assertThat(result, is(greaterThan(40000L)));
-    }
+    // From 2026-01-01T00:00, P3Y6M4DT12H30M50S ends at 2029-07-05T12:30:50, 1281 days later.
 
     @ParameterizedTest
-    @ValueSource(strings = {"PT10H4M30S", "P3Y6M4DT12H30M50S"})
-    void getPeriodOfTime_DurationInMillisZDT(String iso8601){
-        long result = PeriodOfTime.durationInMillisFrom(iso8601, ZonedDateTime.now());
-        System.out.println(result);
-        assertThat(result, is(greaterThan(40000L)));
+    @CsvSource({
+            "PT10H4M30S,        36270000",
+            "P3Y6M4DT12H30M50S, 110723450000"})
+    void getPeriodOfTime_DurationInMillisLDT(String iso8601, long expected){
+        long result = PeriodOfTime.durationInMillisFrom(iso8601, LocalDateTime.of(2026, 1, 1, 0, 0));
+        assertThat(result, is(expected));
+    }
+
+    // In Berlin the long duration crosses into summer time, so it is one hour shorter.
+    @ParameterizedTest
+    @CsvSource({
+            "PT10H4M30S,        36270000",
+            "P3Y6M4DT12H30M50S, 110719850000"})
+    void getPeriodOfTime_DurationInMillisZDT(String iso8601, long expected){
+        ZonedDateTime start = ZonedDateTime.of(2026, 1, 1, 0, 0, 0, 0, ZoneId.of("Europe/Berlin"));
+        long result = PeriodOfTime.durationInMillisFrom(iso8601, start);
+        assertThat(result, is(expected));
     }
 
     // A leading minus negates the entire interval per ISO 8601. The grammar's `intervalT` rule

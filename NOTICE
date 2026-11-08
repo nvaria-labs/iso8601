@@ -1,0 +1,34 @@
+iso8601
+Copyright 2024-2026 Nvaria GmbH
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE),
+with the exception of the ANTLR grammar src/main/antlr/Iso8601.g4, which is
+licensed under the BSD Zero Clause License (0BSD, text in the file header).
+
+--------------------------------------------------------------------------------
+ISO 8601 grammar
+--------------------------------------------------------------------------------
+
+The grammar is based on the ISO 8601 grammar from the ANTLR grammars-v4
+repository:
+
+  Copyright (C) 2020 by Student Main
+  License: 0BSD
+  Source:  https://github.com/antlr/grammars-v4/blob/753536777d827ccc0c9b108531ea67375c2039ac/iso8601/iso8601.g4
+
+Modifications Copyright (C) 2024-2026 Nvaria GmbH, also released under 0BSD:
+
+  - Renamed the grammar from iso8601 to Iso8601 to follow Java class naming.
+  - recurringCount accepts R-1 (unbounded) besides R and Rn. The minus is a
+    separate token so that it does not clash with dates such as 2026-09-15.
+  - New entry rule dateOrDatetime: a date and time, or a date alone.
+  - New rules intervalPointBasic and intervalPointExtended: the start of a
+    start/duration interval and the end of a duration/end interval may be a
+    date alone, not only a date and time.
+  - intervalYMDTimeBasic tries monthDateBasic after the date alternatives, so
+    an ambiguous basic-format value such as 0203 is read as a reduced-precision
+    date rather than month and day.
+  - Removed the duplicate monthDateExtended alternative from
+    intervalYMDTimeExtended.
+
+

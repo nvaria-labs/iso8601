@@ -1,4 +1,4 @@
-package ch.nvaria.iso8601.base.models;
+package ch.nvaria.iso8601.model;
 
 import java.time.ZonedDateTime;
 import java.util.Optional;
@@ -17,7 +17,7 @@ import java.util.Optional;
  * @param end      the end of the interval, or {@code null} for a bare duration
  * @param duration the length of the interval, never {@code null}
  */
-public record TimeIntervalRecord(ZonedDateTime start, ZonedDateTime end, PeriodDurationRecord duration) {
+public record TimeInterval(ZonedDateTime start, ZonedDateTime end, PeriodDuration duration) {
 
     public Optional<ZonedDateTime> optionalStart() {
         return Optional.ofNullable(start);

@@ -1,9 +1,10 @@
 package ch.nvaria.iso8601;
 
-import ch.nvaria.generated.Iso8601Parser;
-import ch.nvaria.iso8601.base.factories.ParseTreeFactory;
-import ch.nvaria.iso8601.base.mappers.DateTimeMapper;
+import ch.nvaria.iso8601.internal.DateTimeMapper;
+import ch.nvaria.iso8601.internal.ParseTreeFactory;
+import ch.nvaria.iso8601.internal.parser.Iso8601Parser;
 
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -18,8 +19,9 @@ import java.time.format.DateTimeParseException;
  * {@code T10:30,5}), {@code 24:00:00} as end of day, and offsets {@code Z}, {@code ±hh}, {@code ±hh:mm},
  * {@code ±hhmm} (basic format).
  * <p>
- * As an extension, a zone id in brackets ({@code 2026-09-15T10:00Z[Europe/Berlin]}) is accepted and
- * handled by {@link ZonedDateTime#parse(CharSequence)}.
+ * As an extension borrowed from java.time, a zone id in brackets may follow the date or date-time
+ * ({@code 2026-09-15T10:00Z[Europe/Berlin]}, {@code 20260915T1000[Europe/Berlin]}). The result is in that
+ * zone: an offset in the string fixes the instant, otherwise the local time is taken in the bracket zone.
  */
 public final class Iso8601Date {
 
@@ -44,6 +46,7 @@ public final class Iso8601Date {
      * Retrieve a ZonedDateTime from an iso8601 date or date-time string.
      * If no time is provided, the start of that day in {@code zoneId} is used.
      * If no offset is provided, {@code zoneId} is used. An offset in the string always wins.
+     * A bracket zone id ({@code ...[Europe/Berlin]}) replaces {@code zoneId}.
      *
      * @param iso8601 the iso 8601 string
      * @param zoneId  the zone id
@@ -51,9 +54,11 @@ public final class Iso8601Date {
      * @throws DateTimeParseException if the string is not a valid ISO 8601 date or date-time
      */
     public static ZonedDateTime date(String iso8601, ZoneId zoneId) {
-        if (iso8601 != null && iso8601.indexOf('[') >= 0) {
+        int bracket = iso8601 == null ? -1 : iso8601.indexOf('[');
+        if (bracket >= 0) {
             // java.time extension "2026-09-15T10:00Z[Europe/Berlin]", not part of ISO 8601
-            return ZonedDateTime.parse(iso8601);
+            ZoneId zone = bracketZone(iso8601, bracket);
+            return date(iso8601.substring(0, bracket), zone).withZoneSameInstant(zone);
         }
         return ParseTreeFactory.parse(iso8601, Iso8601Parser::dateOrDatetime, ctx -> {
             if (ctx.datetime() != null) {
@@ -73,5 +78,16 @@ public final class Iso8601Date {
      */
     public static LocalDate localDate(String iso8601) {
         return ParseTreeFactory.parse(iso8601, Iso8601Parser::date, DateTimeMapper::toLocalDate);
+    }
+
+    private static ZoneId bracketZone(String iso8601, int bracket) {
+        if (!iso8601.endsWith("]")) {
+            throw new DateTimeParseException("Unclosed zone id in '" + iso8601 + "'", iso8601, bracket);
+        }
+        try {
+            return ZoneId.of(iso8601.substring(bracket + 1, iso8601.length() - 1));
+        } catch (DateTimeException e) {
+            throw new DateTimeParseException(e.getMessage() + " in '" + iso8601 + "'", iso8601, bracket + 1, e);
+        }
     }
 }

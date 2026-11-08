@@ -1,6 +1,5 @@
-package global;
+package ch.nvaria.iso8601;
 
-import ch.nvaria.iso8601.Iso8601Date;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 

@@ -1,11 +1,12 @@
 package ch.nvaria.iso8601;
 
-import ch.nvaria.generated.Iso8601Parser;
-import ch.nvaria.iso8601.base.factories.ParseTreeFactory;
-import ch.nvaria.iso8601.base.mappers.TimeIntervalMapper;
-import ch.nvaria.iso8601.base.models.PeriodDurationRecord;
-import ch.nvaria.iso8601.base.models.TimeIntervalRecord;
+import ch.nvaria.iso8601.internal.ParseTreeFactory;
+import ch.nvaria.iso8601.internal.TimeIntervalMapper;
+import ch.nvaria.iso8601.internal.parser.Iso8601Parser;
+import ch.nvaria.iso8601.model.PeriodDuration;
+import ch.nvaria.iso8601.model.TimeInterval;
 
+import java.time.Clock;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
@@ -19,7 +20,8 @@ import java.util.stream.Stream;
  * {@code R} and {@code R-1} mean unbounded.
  * <p>
  * Each repetition starts where the previous one ended, so the interval's duration is also the step.
- * When the interval has no start, {@code ZonedDateTime.now(zoneId)} is used as the start of the first
+ * When the interval has no start, the trigger methods use the current time of the given clock
+ * ({@code Clock.system(zoneId)} for the overloads taking a {@link ZoneId}) as the start of the first
  * repetition. This is a library convention; ISO 8601 leaves the start to the context.
  */
 public final class RecurringCycle {
@@ -45,10 +47,23 @@ public final class RecurringCycle {
      * @return List of dates
      * @throws DateTimeParseException   if iso8601 string is not a valid recurring interval
      * @throws IllegalArgumentException if the cycle is unbounded; use {@link #triggerTimesInclusive(String, ZoneId, int)}
-     * @since 1.0
      */
     public static List<ZonedDateTime> triggerTimesInclusive(String iso8601, ZoneId zoneId) {
-        return triggersInclusive(iso8601, zoneId).limit(boundedRepetitions(iso8601)).toList();
+        return triggerTimesInclusive(iso8601, Clock.system(zoneId));
+    }
+
+    /**
+     * Get the calculated trigger times of a repetition cycle (inclusive).
+     * If no start date is given, the current time of {@code clock} is used.
+     *
+     * @param iso8601 iso8601 string
+     * @param clock   source of the start for a cycle without one; its zone applies to points without offset
+     * @return List of dates
+     * @throws DateTimeParseException   if iso8601 string is not a valid recurring interval
+     * @throws IllegalArgumentException if the cycle is unbounded; use {@link #triggerTimesInclusive(String, Clock, int)}
+     */
+    public static List<ZonedDateTime> triggerTimesInclusive(String iso8601, Clock clock) {
+        return triggersInclusive(iso8601, clock).limit(boundedRepetitions(iso8601)).toList();
     }
 
     /**
@@ -59,10 +74,22 @@ public final class RecurringCycle {
      * @param limit   maximum number of entries, useful for unbounded cycles
      * @return List of dates
      * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
-     * @since 1.0
      */
     public static List<ZonedDateTime> triggerTimesInclusive(String iso8601, ZoneId zoneId, int limit) {
-        return triggersInclusive(iso8601, zoneId).limit(limit).toList();
+        return triggerTimesInclusive(iso8601, Clock.system(zoneId), limit);
+    }
+
+    /**
+     * Get the calculated trigger times of a repetition cycle (inclusive), at most {@code limit} entries.
+     *
+     * @param iso8601 iso8601 string
+     * @param clock   source of the start for a cycle without one; its zone applies to points without offset
+     * @param limit   maximum number of entries, useful for unbounded cycles
+     * @return List of dates
+     * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
+     */
+    public static List<ZonedDateTime> triggerTimesInclusive(String iso8601, Clock clock, int limit) {
+        return triggersInclusive(iso8601, clock).limit(limit).toList();
     }
 
     /**
@@ -75,10 +102,23 @@ public final class RecurringCycle {
      * @return List of dates
      * @throws DateTimeParseException   if iso8601 string is not a valid recurring interval
      * @throws IllegalArgumentException if the cycle is unbounded; use {@link #triggerTimesExclusive(String, ZoneId, int)}
-     * @since 1.0
      */
     public static List<ZonedDateTime> triggerTimesExclusive(String iso8601, ZoneId zoneId) {
-        return triggersExclusive(iso8601, zoneId).limit(boundedRepetitions(iso8601)).toList();
+        return triggerTimesExclusive(iso8601, Clock.system(zoneId));
+    }
+
+    /**
+     * Get the calculated trigger times of a repetition cycle (exclusive).
+     * If no start date is given, the current time of {@code clock} is used.
+     *
+     * @param iso8601 iso8601 string
+     * @param clock   source of the start for a cycle without one; its zone applies to points without offset
+     * @return List of dates
+     * @throws DateTimeParseException   if iso8601 string is not a valid recurring interval
+     * @throws IllegalArgumentException if the cycle is unbounded; use {@link #triggerTimesExclusive(String, Clock, int)}
+     */
+    public static List<ZonedDateTime> triggerTimesExclusive(String iso8601, Clock clock) {
+        return triggersExclusive(iso8601, clock).limit(boundedRepetitions(iso8601)).toList();
     }
 
     /**
@@ -89,10 +129,22 @@ public final class RecurringCycle {
      * @param limit   maximum number of entries, useful for unbounded cycles
      * @return List of dates
      * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
-     * @since 1.0
      */
     public static List<ZonedDateTime> triggerTimesExclusive(String iso8601, ZoneId zoneId, int limit) {
-        return triggersExclusive(iso8601, zoneId).limit(limit).toList();
+        return triggerTimesExclusive(iso8601, Clock.system(zoneId), limit);
+    }
+
+    /**
+     * Get the calculated trigger times of a repetition cycle (exclusive), at most {@code limit} entries.
+     *
+     * @param iso8601 iso8601 string
+     * @param clock   source of the start for a cycle without one; its zone applies to points without offset
+     * @param limit   maximum number of entries, useful for unbounded cycles
+     * @return List of dates
+     * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
+     */
+    public static List<ZonedDateTime> triggerTimesExclusive(String iso8601, Clock clock, int limit) {
+        return triggersExclusive(iso8601, clock).limit(limit).toList();
     }
 
     /**
@@ -105,7 +157,20 @@ public final class RecurringCycle {
      * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
      */
     public static Stream<ZonedDateTime> triggersInclusive(String iso8601, ZoneId zoneId) {
-        Parsed p = parse(iso8601, zoneId);
+        return triggersInclusive(iso8601, Clock.system(zoneId));
+    }
+
+    /**
+     * Lazy stream of trigger times (inclusive: the first element is the start), n elements long,
+     * infinite for an unbounded cycle.
+     *
+     * @param iso8601 iso8601 string
+     * @param clock   source of the start for a cycle without one; its zone applies to points without offset
+     * @return stream of dates
+     * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
+     */
+    public static Stream<ZonedDateTime> triggersInclusive(String iso8601, Clock clock) {
+        Parsed p = parse(iso8601, clock);
         return Stream.iterate(p.start(), p.duration()::addTo).limit(p.repetitions());
     }
 
@@ -119,7 +184,20 @@ public final class RecurringCycle {
      * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
      */
     public static Stream<ZonedDateTime> triggersExclusive(String iso8601, ZoneId zoneId) {
-        Parsed p = parse(iso8601, zoneId);
+        return triggersExclusive(iso8601, Clock.system(zoneId));
+    }
+
+    /**
+     * Lazy stream of trigger times (exclusive: the first element is the start plus one duration),
+     * n elements long, infinite for an unbounded cycle.
+     *
+     * @param iso8601 iso8601 string
+     * @param clock   source of the start for a cycle without one; its zone applies to points without offset
+     * @return stream of dates
+     * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
+     */
+    public static Stream<ZonedDateTime> triggersExclusive(String iso8601, Clock clock) {
+        Parsed p = parse(iso8601, clock);
         return Stream.iterate(p.duration().addTo(p.start()), p.duration()::addTo).limit(p.repetitions());
     }
 
@@ -130,25 +208,22 @@ public final class RecurringCycle {
      * @param iso8601 iso8601 string
      * @return the number of repetitions, {@link #UNBOUNDED} for R or R-1
      * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
-     * @since 1.0
      */
-    public static Integer repetitions(String iso8601) {
+    public static int repetitions(String iso8601) {
         return ParseTreeFactory.parse(iso8601, Iso8601Parser::recurring, ctx -> repetitions(count(ctx)));
     }
 
     /**
      * Retrieves start date of cycle iso8601 string.
      * Example: R5/someDate/P1D wil result in someDate. For R5/P1D/someDate the start is someDate minus P1D.
-     * If the string has no start, ZonedDateTime.now(zoneId) is returned.
      *
      * @param iso8601 iso8601 string
-     * @param zoneId  ZoneId, e.g. ZoneId.of("Z") or ZoneId.of("Europe/Berlin")
-     * @return date as a ZonedDateTime
+     * @param zoneId  zone for points that carry no offset, e.g. ZoneId.of("Z") or ZoneId.of("Europe/Berlin")
+     * @return the start, or empty if the string has none ({@code R5/P1D})
      * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
-     * @since 1.0
      */
     public static Optional<ZonedDateTime> startDate(String iso8601, ZoneId zoneId) {
-        return Optional.of(parse(iso8601, zoneId).start());
+        return interval(iso8601, zoneId).optionalStart();
     }
 
     /**
@@ -158,9 +233,8 @@ public final class RecurringCycle {
      * @param iso8601 iso8601 string
      * @return the period and duration
      * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
-     * @since 1.0
      */
-    public static PeriodDurationRecord periodDuration(String iso8601) {
+    public static PeriodDuration periodDuration(String iso8601) {
         return interval(iso8601, ZoneId.of("Z")).duration();
     }
 
@@ -172,19 +246,19 @@ public final class RecurringCycle {
      * @return the interval; start and end are {@code null} for a bare duration
      * @throws DateTimeParseException if iso8601 string is not a valid recurring interval
      */
-    public static TimeIntervalRecord interval(String iso8601, ZoneId zoneId) {
+    public static TimeInterval interval(String iso8601, ZoneId zoneId) {
         return ParseTreeFactory.parse(iso8601, Iso8601Parser::recurring, ctx -> interval(ctx, zoneId));
     }
 
     //-----------------------------------------------------------------------
 
-    private record Parsed(int repetitions, ZonedDateTime start, PeriodDurationRecord duration) {
+    private record Parsed(int repetitions, ZonedDateTime start, PeriodDuration duration) {
     }
 
-    private static Parsed parse(String iso8601, ZoneId zoneId) {
+    private static Parsed parse(String iso8601, Clock clock) {
         return ParseTreeFactory.parse(iso8601, Iso8601Parser::recurring, ctx -> {
-            TimeIntervalRecord interval = interval(ctx, zoneId);
-            ZonedDateTime start = interval.start() != null ? interval.start() : ZonedDateTime.now(zoneId);
+            TimeInterval interval = interval(ctx, clock.getZone());
+            ZonedDateTime start = interval.start() != null ? interval.start() : ZonedDateTime.now(clock);
             return new Parsed(repetitions(count(ctx)), start, interval.duration());
         });
     }
@@ -201,7 +275,7 @@ public final class RecurringCycle {
         return ctx.recurringBasic() != null ? ctx.recurringBasic().recurringCount() : ctx.recurringExtended().recurringCount();
     }
 
-    private static TimeIntervalRecord interval(Iso8601Parser.RecurringContext ctx, ZoneId zoneId) {
+    private static TimeInterval interval(Iso8601Parser.RecurringContext ctx, ZoneId zoneId) {
         repetitions(count(ctx)); // validates the count, e.g. rejects R-2
         return ctx.recurringBasic() != null
                 ? TimeIntervalMapper.toInterval(ctx.recurringBasic().durationBasic(), zoneId)

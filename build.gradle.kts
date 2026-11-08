@@ -1,5 +1,11 @@
 import io.github.simonhauck.release.version.api.Version
 
+buildscript {
+    repositories { gradlePluginPortal() }
+    // palantir git-version needs Guava at runtime but doesn't declare it
+    dependencies { classpath(libs.guava) }
+}
+
 plugins {
     `java-library`
     idea
@@ -13,9 +19,10 @@ plugins {
     antlr
 }
 
-group = "ch.nvaria.impulse-platform"
+group = "ch.nvaria"
 
-val versionDetails: groovy.lang.Closure<com.palantir.gradle.gitversion.VersionDetails> by extra
+@Suppress("UNCHECKED_CAST")
+val versionDetails = extra["versionDetails"] as groovy.lang.Closure<com.palantir.gradle.gitversion.VersionDetails>
 val details = versionDetails()
 val versionFile = layout.settingsDirectory.file("version.properties").asFile
 version = Version.fromPropertiesFile(versionFile)
@@ -76,25 +83,26 @@ val licenseId = "Apache-2.0"
 val licenseUrl = "https://www.apache.org/licenses/LICENSE-2.0"
 val copyrightHolder = "Nvaria GmbH"
 
+// Public home of the project. Gitea is the source of truth; GitHub is its read-only mirror.
+val projectUrl = "https://github.com/nvaria-labs/iso8601"
+
 
 spdxSbom {
     onlyUseLocalLicenses.set(true)
     targets {
         create("release") {
-            // Everything on the runtime classpath (test deps stay out). Note this
-            // includes the ANTLR *tool* jar + ST4/treelayout — the antlr plugin puts
-            // it on 'api', so it is a real runtime-classpath entry here.
+            // Everything on the runtime classpath (test deps stay out).
             configurations.set(listOf("runtimeClasspath"))
 
             scm {
                 tool.set("git")
-                uri.set("https://gitea.nvaria.cloud/nvaria/iso8601_lib")
-                revision.set(details.gitHash)
+                uri.set(projectUrl)
+                revision.set(details.gitHashFull)
             }
 
             document {
-                name.set("iso8601lib")
-                namespace.set("https://nvaria.ch/spdx/iso8601lib/${project.version}")
+                name.set("iso8601")
+                namespace.set("https://nvaria.ch/spdx/iso8601/${project.version}")
                 creator.set("Organization: Nvaria GmbH")
                 packageSupplier.set("Organization: Nvaria GmbH")
             }
@@ -104,9 +112,9 @@ spdxSbom {
 
 // Two things the plugin cannot express, patched into the finished document:
 //
-//  1. the license of the root (project) package — hardcoded to NOASSERTION, no DSL
-//     and no task-extension hook for it (dependency licenses come from their POMs
-//     and are already correct);
+//  1. the license and download location of the root (project) package — hardcoded to
+//     NOASSERTION, no DSL and no task-extension hook for it (dependency licenses come
+//     from their POMs and are already correct);
 //  2. the download locations — everything resolves through the nexus mirror, so the
 //     plugin records internal, auth-required URLs that no consumer can fetch, and
 //     stamps the mirror host into every purl as a ?repository_url= qualifier.
@@ -133,6 +141,7 @@ tasks.named("spdxSbomForRelease") {
         root["licenseDeclared"] = licenseId
         root["licenseConcluded"] = licenseId
         root["copyrightText"] = "Copyright $copyrightHolder"
+        root["downloadLocation"] = "git+$projectUrl.git@${details.gitHashFull}"
 
         // Our own artifacts genuinely only live in nexus — leave those pointing there.
         // Everything else is a Central artifact the mirror merely proxies.
@@ -164,8 +173,7 @@ val sbomFile = layout.buildDirectory.file("spdx/release.spdx.json")
 publishing {
     publications {
         create<MavenPublication>("maven") {
-            groupId = "ch.nvaria.impulse-platform"
-            artifactId = "iso8601lib"
+            artifactId = "iso8601"
 
             from(components["java"])
             artifact(sbomFile) {
@@ -174,9 +182,15 @@ publishing {
                 extension = "spdx.json"
             }
             pom {
-                name.set("iso8601lib")
-                description.set("A Library to read iso8601 strings")
-                url.set("")
+                name.set("iso8601")
+                description.set("Parser for ISO 8601-1 dates, times, durations, time intervals and recurring time intervals")
+                url.set(projectUrl)
+                inceptionYear.set("2024")
+
+                organization {
+                    name.set(copyrightHolder)
+                    url.set("https://nvaria.ch")
+                }
 
                 licenses {
                     license {
@@ -189,7 +203,17 @@ publishing {
                         id.set("tm")
                         name.set("Thomas Müllerleile")
                         email.set("thomas.muellerleile@nvaria.ch")
+                        organization.set(copyrightHolder)
                     }
+                }
+                scm {
+                    url.set(projectUrl)
+                    connection.set("scm:git:$projectUrl.git")
+                    developerConnection.set("scm:git:$projectUrl.git")
+                }
+                issueManagement {
+                    system.set("GitHub")
+                    url.set("$projectUrl/issues")
                 }
             }
         }
@@ -217,18 +241,21 @@ publishing {
 }
 
 
-val mockitoAgent = configurations.create("mockitoAgent")
-
 sourceSets.configureEach {
     val generateGrammarSource = tasks.named(getTaskName("generate", "GrammarSource"))
     java.srcDir(generateGrammarSource.map { files() })
+}
+
+// The antlr plugin makes 'api' extend 'antlr', which would publish the ANTLR *tool*
+// (plus ST4, antlr3, icu4j, ...) as a compile dependency. Consumers only need the runtime.
+configurations.api {
+    setExtendsFrom(extendsFrom.filterNot { it.name == "antlr" })
 }
 
 dependencies {
     antlr(libs.antlr.v4)
     implementation(libs.antlr.v4.runtime)
 
-    mockitoAgent(libs.mockito.core) { isTransitive = false }
     testImplementation(libs.hamcrest)
     testImplementation(libs.hamcrest.date)
 
@@ -239,20 +266,17 @@ dependencies {
 }
 
 tasks.named<Test>("test") {
-
-    jvmArgs("-XX:+EnableDynamicAgentLoading",  "-XX:+UnlockExperimentalVMOptions","-XX:+EnableJVMCI", "-javaagent:${mockitoAgent.asPath}")
     useJUnitPlatform()
 }
 
 
 
 tasks.generateGrammarSource {
-    outputDirectory = file(layout.projectDirectory.dir("src/main/java/ch/nvaria/generated"))
     maxHeapSize = "64m"
-    arguments = arguments + listOf("-visitor", "-long-messages", "-package" ,"ch.nvaria.generated")
+    packageName = "ch.nvaria.iso8601.internal.parser"
+    arguments = arguments + listOf("-visitor", "-long-messages")
 }
 
-tasks.named("test").configure { dependsOn("jar") }
 
 tasks.test {
     finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
@@ -267,7 +291,7 @@ tasks.jacocoTestReport {
     dependsOn(tasks.test) // tests are required to run before generating the report
     classDirectories.setFrom(
         sourceSets.main.get().output.asFileTree.matching {
-            exclude("ch/nvaria/generated/*")
+            exclude("ch/nvaria/iso8601/internal/parser/*")
         }
     )
 }
@@ -276,9 +300,26 @@ tasks.withType<JavaCompile>().configureEach {
     options.isDeprecation = true
 }
 
+// Document only the packages exported by module-info. The excluded internals are
+// patched into the module from the compiled classes so the API sources still resolve.
+tasks.named<Javadoc>("javadoc") {
+    val mainClasses = sourceSets.main.get().output.classesDirs
+    inputs.files(mainClasses)
+    exclude("ch/nvaria/iso8601/internal/**")
+    (options as StandardJavadocDocletOptions).addStringOption(
+        "-patch-module", "ch.nvaria.iso8601=" + mainClasses.asPath)
+}
+
 tasks.withType<Javadoc>().configureEach {
-    exclude("ch/nvaria/generated/**")
     (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:all,-missing", "-quiet")
+}
+
+// LICENSE and NOTICE travel with every published jar, as the Apache License asks.
+tasks.withType<Jar>().configureEach {
+    from(layout.projectDirectory) {
+        include("LICENSE", "NOTICE")
+        into("META-INF")
+    }
 }
 
 tasks.named<Jar>("sourcesJar") {

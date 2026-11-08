@@ -1,14 +1,16 @@
-package global;
+package ch.nvaria.iso8601;
 
-import ch.nvaria.iso8601.RecurringCycle;
-import ch.nvaria.iso8601.base.models.PeriodDurationRecord;
+import ch.nvaria.iso8601.model.PeriodDuration;
 import org.exparity.hamcrest.date.ZonedDateTimeMatchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Duration;
+import java.time.Period;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
@@ -96,51 +98,44 @@ class RecurringCycleTest {
     @ParameterizedTest
     @ValueSource(strings = {"R12/PT30S", "R12/2008-03-01T13:00:00Z/P1Y2M10DT2H30M",  "R12/2008-03-01T13:00:00Z/P1Y2M10DT2H30M"})
     void getCycleDuration_(String iso8601){
-        PeriodDurationRecord reps = RecurringCycle.periodDuration(iso8601);
+        PeriodDuration reps = RecurringCycle.periodDuration(iso8601);
         assertThat(reps, is(notNullValue()));
         assertThat(reps.duration(), is(greaterThan(Duration.ofSeconds(25))));
 
     }
 
 
+    private static final ZonedDateTime START_2008 = ZonedDateTime.of(2008, 3, 1, 13, 0, 0, 0, ZoneOffset.UTC);
+
     @ParameterizedTest
     @ValueSource(strings = {"R1/2008-03-01T13:00:00Z/P1Y2M10DT2H30M",  "R0/2008-03-01T13:00:00Z/P1Y2M10DT2H30M"})
     void getCycleStartDate_0(String iso8601){
         Optional<ZonedDateTime> startDate = RecurringCycle.startDate(iso8601,  ZoneId.of("Z"));
-        System.out.println(startDate);
-        assertThat(startDate, is(notNullValue()));
-        assertThat(startDate.get().getYear(), is(2008));
+        assertThat(startDate, is(Optional.of(START_2008)));
     }
 
-
-
+    // The offset in the string wins over the zone id passed in.
     @ParameterizedTest
     @ValueSource(strings = {"R1/2008-03-01T13:00:00Z/P1Y2M10DT2H30M",  "R0/2008-03-01T13:00:00Z/P1Y2M10DT2H30M"})
     void getCycleStartDate_ZoneIdBerlin(String iso8601){
         Optional<ZonedDateTime> startDate = RecurringCycle.startDate(iso8601,  ZoneId.of("Europe/Berlin"));
-        System.out.println(startDate.get());
-        assertThat(startDate, is(notNullValue()));
-        assertThat(startDate.get().getYear(), is(2008));
+        assertThat(startDate, is(Optional.of(START_2008)));
     }
 
-
-
     @ParameterizedTest
-    @ValueSource(strings = {"R1/PT30S","R1/2008-03-01T13:00:00Z/P1Y2M10DT2H30M",  "R1/2008-03-01T13:00:00Z/PT30S"})
-    void getCycle_getAll(String iso8601){
-        Integer reps = RecurringCycle.repetitions(iso8601);
+    @CsvSource({
+            "R1/PT30S,                               false, ,        PT30S",
+            "R1/2008-03-01T13:00:00Z/P1Y2M10DT2H30M, true,  P1Y2M10D, PT2H30M",
+            "R1/2008-03-01T13:00:00Z/PT30S,          true,  ,        PT30S"})
+    void getCycle_getAll(String iso8601, boolean hasStart, Period period, Duration duration){
+        int reps = RecurringCycle.repetitions(iso8601);
         Optional<ZonedDateTime> startDate = RecurringCycle.startDate(iso8601,  ZoneId.of("Europe/Berlin"));
-        PeriodDurationRecord pdr = RecurringCycle.periodDuration(iso8601);
-        System.out.println(reps);
-        System.out.println(startDate);
-        System.out.println(pdr.period() + " " + pdr.duration());
+        PeriodDuration pdr = RecurringCycle.periodDuration(iso8601);
 
         assertThat(reps, is(1));
-
-
-
-        assertThat(pdr.duration(), is(notNullValue()));
-
+        assertThat(startDate, is(hasStart ? Optional.of(START_2008) : Optional.empty()));
+        assertThat(pdr.period(), is(period));
+        assertThat(pdr.duration(), is(duration));
     }
 
 
@@ -159,7 +154,7 @@ class RecurringCycleTest {
         Optional<ZonedDateTime> startDate = RecurringCycle.startDate(iso8601, ZoneId.of("Z"));
         assertThat(startDate.isPresent(), is(true));
         assertThat(startDate.get().getYear(), is(2026));
-        PeriodDurationRecord pdr = RecurringCycle.periodDuration(iso8601);
+        PeriodDuration pdr = RecurringCycle.periodDuration(iso8601);
         assertThat(pdr.duration(), is(Duration.ofHours(1)));
     }
 

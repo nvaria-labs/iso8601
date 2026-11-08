@@ -1,8 +1,8 @@
 .gradle
 .idea
 **/build/
+bin/
 !src/**/build/
-src/main/java/ch/nvaria/generated
 # ---> Java
 # Compiled class file
 *.class

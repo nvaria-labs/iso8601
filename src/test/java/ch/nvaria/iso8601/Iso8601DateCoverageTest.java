@@ -1,6 +1,5 @@
-package global;
+package ch.nvaria.iso8601;
 
-import ch.nvaria.iso8601.Iso8601Date;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -112,11 +111,36 @@ class Iso8601DateCoverageTest {
         assertThat(actual, is(ZonedDateTime.of(2026, 9, 15, 10, 0, 0, 0, BERLIN)));
     }
 
-    @Test
-    void bracketZoneIdExtensionStillWorks() {
-        ZonedDateTime actual = Iso8601Date.date("2007-04-05T14:30Z[Europe/Berlin]", ZoneId.of("Z"));
-        assertThat(actual.getZone(), is(BERLIN));
-        assertThat(actual.getHour(), is(16));
+    // ---------------------------------------------------------------- java.time extension: [zone id]
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2007-04-05T14:30Z[Europe/Berlin]", "20070405T1430Z[Europe/Berlin]",
+            "2007-04-05T16:30+02:00[Europe/Berlin]", "20070405T1630+0200[Europe/Berlin]", "2007-04-05T15:30+01[Europe/Berlin]"})
+    void bracketZoneWithOffsetKeepsInstant(String iso8601) {
+        ZonedDateTime actual = Iso8601Date.date(iso8601, ZoneId.of("Z"));
+        assertThat(actual, is(ZonedDateTime.of(2007, 4, 5, 16, 30, 0, 0, BERLIN)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2007-04-05T14:30[Europe/Berlin]", "20070405T1430[Europe/Berlin]", "2007-095T14:30[Europe/Berlin]"})
+    void bracketZoneWithoutOffsetIsLocalTimeInThatZone(String iso8601) {
+        ZonedDateTime actual = Iso8601Date.date(iso8601, ZoneId.of("Z"));
+        assertThat(actual, is(ZonedDateTime.of(2007, 4, 5, 14, 30, 0, 0, BERLIN)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2007-04-05[Europe/Berlin]", "20070405[Europe/Berlin]"})
+    void bracketZoneOnDateIsStartOfDayInThatZone(String iso8601) {
+        ZonedDateTime actual = Iso8601Date.date(iso8601, ZoneId.of("Z"));
+        assertThat(actual, is(ZonedDateTime.of(2007, 4, 5, 0, 0, 0, 0, BERLIN)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2007-04-05T14:30Z[Mars/Olympus]", "2007-04-05T14:30Z[Europe/Berlin", "2007-04-05T14:30Z[]",
+            "2007-04-05T14:30Z[Europe/Berlin]x", "2007-04-05T14:30Z[Europe/Berlin][UTC]", "2007-13-05T14:30Z[Europe/Berlin]",
+            "[Europe/Berlin]"})
+    void invalidBracketZone(String iso8601) {
+        assertThrows(DateTimeParseException.class, () -> Iso8601Date.date(iso8601, BERLIN));
     }
 
     @ParameterizedTest

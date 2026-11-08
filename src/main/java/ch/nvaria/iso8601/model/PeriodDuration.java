@@ -1,4 +1,4 @@
-package ch.nvaria.iso8601.base.models;
+package ch.nvaria.iso8601.model;
 
 import java.time.Duration;
 import java.time.Period;
@@ -11,7 +11,7 @@ import java.time.temporal.Temporal;
  * @param period   the calendar part, e.g. {@code P1Y2M3D}, or {@code null}
  * @param duration the exact part, e.g. {@code PT4H5M6S}, or {@code null}
  */
-public record PeriodDurationRecord(Period period, Duration duration) {
+public record PeriodDuration(Period period, Duration duration) {
 
     /**
      * Adds this duration to a temporal, calendar part first.
@@ -54,8 +54,8 @@ public record PeriodDurationRecord(Period period, Duration duration) {
     /**
      * @return this duration with both parts negated
      */
-    public PeriodDurationRecord negated() {
-        return new PeriodDurationRecord(period == null ? null : period.negated(),
+    public PeriodDuration negated() {
+        return new PeriodDuration(period == null ? null : period.negated(),
                 duration == null ? null : duration.negated());
     }
 }
