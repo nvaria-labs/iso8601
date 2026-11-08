@@ -1,3 +1,6 @@
+import com.vanniktech.maven.publish.JavaLibrary
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.SourcesJar
 import io.github.simonhauck.release.version.api.Version
 
 buildscript {
@@ -14,7 +17,7 @@ plugins {
     alias(libs.plugins.release)
     alias(libs.plugins.git.version)
     alias(libs.plugins.spdx.sbom)
-    `maven-publish`
+    alias(libs.plugins.maven.publish)
     jacoco
     antlr
 }
@@ -39,40 +42,15 @@ release {
     checkForPreReleaseVersions.set(false)
 }
 
+// Built with JDK 25, but runs on Java 21+. targetCompatibility also sets the Java version
+// in the published Gradle module metadata, so consumers on 21 can resolve the library.
 java {
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
-    withSourcesJar()
-    withJavadocJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 repositories {
-    //mavenLocal()
-    //mavenCentral()
-
-    maven {
-        name = "maven-public"
-        url = uri("https://nexus.nvaria.cloud/repository/maven-public/")
-        credentials {
-            username = System.getenv("NEXUS_USER")
-            password = System.getenv("NEXUS_PW")
-        }
-    }
-    maven {
-        name = "maven-release"
-        url = uri(System.getenv("NEXUS_MVN_RELEASE"))
-        credentials {
-            username = System.getenv("NEXUS_USER")
-            password = System.getenv("NEXUS_PW")
-        }
-    }
-    maven {
-        url = uri(System.getenv("NEXUS_MVN_SNAPSHOTS"))
-        credentials {
-            username = System.getenv("NEXUS_USER")
-            password = System.getenv("NEXUS_PW")
-        }
-    }
+    mavenCentral()
 }
 
 
@@ -115,9 +93,8 @@ spdxSbom {
 //  1. the license and download location of the root (project) package — hardcoded to
 //     NOASSERTION, no DSL and no task-extension hook for it (dependency licenses come
 //     from their POMs and are already correct);
-//  2. the download locations — everything resolves through the nexus mirror, so the
-//     plugin records internal, auth-required URLs that no consumer can fetch, and
-//     stamps the mirror host into every purl as a ?repository_url= qualifier.
+//  2. the purls — the plugin stamps the resolving repository into every purl as a
+//     ?repository_url= qualifier. Maven Central is the purl default, so it is redundant.
 //
 // Deliberately NOT done via the plugin's taskExtension.mapRepoUri: that property is
 // @Internal, so changing the mapping would not invalidate the task and the SBOM would
@@ -143,20 +120,12 @@ tasks.named("spdxSbomForRelease") {
         root["copyrightText"] = "Copyright $copyrightHolder"
         root["downloadLocation"] = "git+$projectUrl.git@${details.gitHashFull}"
 
-        // Our own artifacts genuinely only live in nexus — leave those pointing there.
-        // Everything else is a Central artifact the mirror merely proxies.
-        val mirror = "https://nexus.nvaria.cloud/repository/maven-public/"
-        val central = "https://repo1.maven.org/maven2/"
-        packages.filterNot { it["name"].toString().startsWith("ch.nvaria") }.forEach { pkg ->
-            val location = pkg["downloadLocation"] as? String
-            if (location != null && location.startsWith(mirror)) {
-                pkg["downloadLocation"] = central + location.removePrefix(mirror)
-            }
+        packages.forEach { pkg ->
             @Suppress("UNCHECKED_CAST")
             val refs = pkg["externalRefs"] as? List<MutableMap<String, Any>> ?: emptyList()
             refs.forEach { ref ->
                 val purl = ref["referenceLocator"] as? String ?: return@forEach
-                // Drop only the mirror qualifier; keep any others (classifier, type, …).
+                // Drop only the repository qualifier; keep any others (classifier, type, …).
                 val kept = purl.substringAfter('?', "").split("&")
                     .filterNot { it.startsWith("repository_url=") }
                 ref["referenceLocator"] = purl.substringBefore('?') +
@@ -170,71 +139,81 @@ tasks.named("spdxSbomForRelease") {
 
 val sbomFile = layout.buildDirectory.file("spdx/release.spdx.json")
 
+mavenPublishing {
+    coordinates(group.toString(), "iso8601", version.toString())
+    configure(JavaLibrary(javadocJar = JavadocJar.Javadoc(), sourcesJar = SourcesJar.Sources()))
+
+    // Upload, validate, then wait for a manual "Publish" click on central.sonatype.com.
+    publishToMavenCentral(automaticRelease = false)
+
+    // Central requires signatures. Only CI release builds have the key
+    // (ORG_GRADLE_PROJECT_signingInMemoryKey), so local and snapshot builds stay unsigned.
+    if (!providers.gradleProperty("signingInMemoryKey").orNull.isNullOrBlank()) {
+        signAllPublications()
+    }
+
+    pom {
+        name.set("iso8601")
+        description.set("Parser for ISO 8601-1 dates, times, durations, time intervals and recurring time intervals")
+        url.set(projectUrl)
+        inceptionYear.set("2024")
+
+        organization {
+            name.set(copyrightHolder)
+            url.set("https://nvaria.ch")
+        }
+
+        licenses {
+            license {
+                name.set(licenseId)
+                url.set(licenseUrl)
+            }
+        }
+        developers {
+            developer {
+                id.set("tm")
+                name.set("Thomas Müllerleile")
+                email.set("oss@nvaria.ch")
+                organization.set(copyrightHolder)
+            }
+        }
+        scm {
+            url.set(projectUrl)
+            connection.set("scm:git:$projectUrl.git")
+            developerConnection.set("scm:git:$projectUrl.git")
+        }
+        issueManagement {
+            system.set("GitHub")
+            url.set("$projectUrl/issues")
+        }
+    }
+}
+
 publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            artifactId = "iso8601"
-
-            from(components["java"])
-            artifact(sbomFile) {
-                builtBy(tasks.named("spdxSbomForRelease"))
-                classifier = "sbom"
-                extension = "spdx.json"
-            }
-            pom {
-                name.set("iso8601")
-                description.set("Parser for ISO 8601-1 dates, times, durations, time intervals and recurring time intervals")
-                url.set(projectUrl)
-                inceptionYear.set("2024")
-
-                organization {
-                    name.set(copyrightHolder)
-                    url.set("https://nvaria.ch")
-                }
-
-                licenses {
-                    license {
-                        name.set(licenseId)
-                        url.set(licenseUrl)
-                    }
-                }
-                developers {
-                    developer {
-                        id.set("tm")
-                        name.set("Thomas Müllerleile")
-                        email.set("thomas.muellerleile@nvaria.ch")
-                        organization.set(copyrightHolder)
-                    }
-                }
-                scm {
-                    url.set(projectUrl)
-                    connection.set("scm:git:$projectUrl.git")
-                    developerConnection.set("scm:git:$projectUrl.git")
-                }
-                issueManagement {
-                    system.set("GitHub")
-                    url.set("$projectUrl/issues")
-                }
+    // The SBOM goes everywhere the jar goes: nexus and Maven Central.
+    publications.withType<MavenPublication>().configureEach {
+        artifact(sbomFile) {
+            builtBy(tasks.named("spdxSbomForRelease"))
+            classifier = "sbom"
+            extension = "spdx.json"
+        }
+    }
+    // Internal nexus, in addition to Maven Central
+    repositories {
+        maven {
+            name = "maven-snapshots"
+            url = uri(System.getenv("NEXUS_MVN_SNAPSHOTS"))
+            credentials {
+                username = System.getenv("NEXUS_USER")
+                password = System.getenv("NEXUS_PW")
             }
         }
-        repositories {
-            maven {
-                name = "maven-snapshots"
-                url = uri(System.getenv("NEXUS_MVN_SNAPSHOTS"))
-                credentials {
-                    username = System.getenv("NEXUS_USER")
-                    password = System.getenv("NEXUS_PW")
-                }
-            }
-        }
-        repositories {
-            maven {
-                name = "maven-release"
-                url = uri(System.getenv("NEXUS_MVN_RELEASE"))
-                credentials {
-                    username = System.getenv("NEXUS_USER")
-                    password = System.getenv("NEXUS_PW")
-                }
+        maven {
+            name = "maven-release"
+            url = uri(System.getenv("NEXUS_MVN_RELEASE"))
+            credentials {
+                username = System.getenv("NEXUS_USER")
+                password = System.getenv("NEXUS_PW")
             }
         }
     }
@@ -296,6 +275,8 @@ tasks.jacocoTestReport {
     )
 }
 tasks.withType<JavaCompile>().configureEach {
+    // --release also rejects JDK APIs newer than 21, unlike source/target alone
+    options.release = 21
     options.compilerArgs.add("-Xlint:unchecked")
     options.isDeprecation = true
 }
@@ -315,8 +296,9 @@ tasks.withType<Javadoc>().configureEach {
 }
 
 // LICENSE and NOTICE travel with every published jar, as the Apache License asks.
-tasks.withType<Jar>().configureEach {
-    from(layout.projectDirectory) {
+// The javadoc jar comes from the publish plugin's own task type, which is not a Jar.
+tasks.matching { it is Jar || it is com.vanniktech.maven.publish.tasks.JavadocJar }.configureEach {
+    (this as AbstractCopyTask).from(layout.projectDirectory) {
         include("LICENSE", "NOTICE")
         into("META-INF")
     }
