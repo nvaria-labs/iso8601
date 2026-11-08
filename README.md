@@ -134,3 +134,5 @@ GitHub with the next sync, with your authorship preserved.
 Apache License 2.0, see [LICENSE](LICENSE). The ANTLR grammar `src/main/antlr/Iso8601.g4` is based on the
 0BSD-licensed grammar by "Student Main" from antlr/grammars-v4 and stays under 0BSD, including our
 modifications; see [NOTICE](NOTICE) for its origin and the list of changes.
+
+Maintained by [Nvaria GmbH](https://nvaria.ch).
