@@ -22,8 +22,8 @@ jobs:
       NEXUS_USER: ${{ secrets.DOCKERUSER }}
       NEXUS_PW: ${{ secrets.DOCKERPW }}
       # Signs every publication (nexus and Maven Central); without the key builds stay unsigned
-      ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
-      ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSPHRASE }}
+      ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY_NVARIA_OSS }}
+      ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSPHRASE_NVARIA_OSS }}
     steps:
       - uses: actions/checkout@v7
         with:
